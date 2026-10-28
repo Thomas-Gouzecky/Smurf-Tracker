@@ -1,3 +1,4 @@
+from pydantic import BaseModel
 from sqlmodel import Field, SQLModel, Column
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PostgresUUID
 from sqlalchemy import DateTime, Text, text
@@ -48,3 +49,14 @@ class OutboxEvent(SQLModel, table=True):
         ),
         description="Timestamp when the event was created.",
     )
+
+
+class OutboxEventCreate(BaseModel):
+    """
+    Represents the data required to create an OutboxEvent.
+    """
+
+    event_type: str
+    aggregate_id: str
+    aggregate_type: str
+    payload: dict[str, Any]
