@@ -2,8 +2,8 @@ import pytest
 from sqlmodel import SQLModel, Session, create_engine, select
 from sqlalchemy.pool import StaticPool
 
-from src.outbox.models import OutboxEvent, OutboxEventCreate
-from src.outbox.writer import OutboxWriter
+from packages.python.outbox.src.outbox.models import OutboxEvent, OutboxEventCreate
+from packages.python.outbox.src.outbox.writer import OutboxWriter
 
 
 @pytest.fixture

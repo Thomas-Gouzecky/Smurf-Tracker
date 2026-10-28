@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from src.outbox.models import OutboxEvent
+from packages.python.outbox.src.outbox.models import OutboxEvent
 
 
 def test_create_outbox_event():
