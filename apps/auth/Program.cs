@@ -92,7 +92,7 @@ static void AddBuilderServices(
 
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(signingKey)),
+                    Convert.FromBase64String(signingKey)),
 
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.FromSeconds(30)
