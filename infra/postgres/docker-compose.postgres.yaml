@@ -34,6 +34,7 @@ services:
       - smurftracker_network
 volumes:
   postgres_data:
+    driver: local
 networks:
   smurftracker_network:
     driver: bridge
