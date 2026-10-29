@@ -13,6 +13,17 @@
         ],
         "cwd": "infra"
       }
+    },
+    "stop": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          {
+            "command": "docker compose -f docker-compose.dev.yaml down"
+          }
+        ],
+        "cwd": "infra"
+      }
     }
   }
 }
