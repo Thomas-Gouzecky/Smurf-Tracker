@@ -4,11 +4,11 @@
   "projectType": "library",
   "targets": {
     "run": {
-      "executor": "@nrwl/workspace:run-commands",
+      "executor": "nx:run-commands",
       "options": {
         "commands": [
           {
-            "command": "docker compose -f docker-compose.dev.yml up -d"
+            "command": "docker compose -f docker-compose.dev.yaml up -d"
           }
         ],
         "cwd": "infra"
