@@ -106,7 +106,7 @@ static void AddBuilderServices(
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();
 
-    // Register your JWT creation service here.
+    services.AddScoped<IJwtService, JwtService>();
 }
 
 public partial class Program { }
