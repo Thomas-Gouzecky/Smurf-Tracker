@@ -44,7 +44,13 @@ public class CoreAuthTests
     [Fact]
     public async Task Register_WhenServiceSucceeds_ReturnsOkWithResult()
     {
-        var request = new RegisterRequest { Email = "new@example.com", Password = "password" };
+        var request = new UserRegisterRequest
+        {
+            UserName = "new-user",
+            Email = "new@example.com",
+            Password = "password",
+            PhoneNumber = "555-0100"
+        };
         var expected = AuthResult.Success();
         var authService = new Mock<IAuthService>();
         authService.Setup(service => service.RegisterAsync(request)).ReturnsAsync(expected);
@@ -60,7 +66,13 @@ public class CoreAuthTests
     [Fact]
     public async Task Register_WhenServiceFails_ReturnsBadRequestWithResult()
     {
-        var request = new RegisterRequest { Email = "existing@example.com", Password = "password" };
+        var request = new UserRegisterRequest
+        {
+            UserName = "existing-user",
+            Email = "existing@example.com",
+            Password = "password",
+            PhoneNumber = "555-0101"
+        };
         var expected = AuthResult.Failure("Email is already registered");
         var authService = new Mock<IAuthService>();
         authService.Setup(service => service.RegisterAsync(request)).ReturnsAsync(expected);

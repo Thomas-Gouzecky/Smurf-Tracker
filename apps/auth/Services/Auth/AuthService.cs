@@ -65,9 +65,9 @@ public sealed class AuthService : IAuthService
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
-    public async Task<AuthResult> RegisterAsync(RegisterRequest request)
+    public async Task<AuthResult> RegisterAsync(UserRegisterRequest request)
     {
-        var user = new ApplicationUser { UserName = request.Email, Email = request.Email };
+        var user = new ApplicationUser { UserName = request.UserName, Email = request.Email, PhoneNumber = request.PhoneNumber };
         var result = await _userManager.CreateAsync(user, request.Password);
 
         if (result.Succeeded)

@@ -130,7 +130,8 @@ public class AuthServiceTests
             .Setup(manager => manager.CreateAsync(
                 It.Is<ApplicationUser>(user =>
                     user.Email == "new@example.com" &&
-                    user.UserName == "new@example.com"),
+                    user.UserName == "new-user" &&
+                    user.PhoneNumber == "555-0100"),
                 "password"))
             .ReturnsAsync(IdentityResult.Success);
         var signInManager = CreateSignInManager(userManager.Object);
@@ -138,7 +139,8 @@ public class AuthServiceTests
             .Setup(manager => manager.SignInAsync(
                 It.Is<ApplicationUser>(user =>
                     user.Email == "new@example.com" &&
-                    user.UserName == "new@example.com"),
+                    user.UserName == "new-user" &&
+                    user.PhoneNumber == "555-0100"),
                 false,
                 null))
             .Returns(Task.CompletedTask);
@@ -146,17 +148,20 @@ public class AuthServiceTests
         jwtService
             .Setup(jwt => jwt.CreateAccessToken(It.Is<ApplicationUser>(user =>
                 user.Email == "new@example.com" &&
-                user.UserName == "new@example.com")))
+                user.UserName == "new-user" &&
+                user.PhoneNumber == "555-0100")))
             .Returns("registration-access-token");
         var service = CreateService(
             signInManager,
             userManager,
             jwtService);
 
-        var result = await service.RegisterAsync(new RegisterRequest
+        var result = await service.RegisterAsync(new UserRegisterRequest
         {
+            UserName = "new-user",
             Email = "new@example.com",
-            Password = "password"
+            Password = "password",
+            PhoneNumber = "555-0100"
         });
 
         Assert.True(result.IsSuccess);
@@ -167,12 +172,14 @@ public class AuthServiceTests
         signInManager.Verify(manager => manager.SignInAsync(
             It.Is<ApplicationUser>(user =>
                 user.Email == "new@example.com" &&
-                user.UserName == "new@example.com"),
+                user.UserName == "new-user" &&
+                user.PhoneNumber == "555-0100"),
             false,
             null), Times.Once);
         jwtService.Verify(jwt => jwt.CreateAccessToken(It.Is<ApplicationUser>(user =>
             user.Email == "new@example.com" &&
-            user.UserName == "new@example.com")), Times.Once);
+            user.UserName == "new-user" &&
+            user.PhoneNumber == "555-0100")), Times.Once);
     }
 
     [Fact]
@@ -190,10 +197,12 @@ public class AuthServiceTests
             userManager,
             new Mock<IJwtService>());
 
-        var result = await service.RegisterAsync(new RegisterRequest
+        var result = await service.RegisterAsync(new UserRegisterRequest
         {
+            UserName = "existing-user",
             Email = "existing@example.com",
-            Password = "weak"
+            Password = "weak",
+            PhoneNumber = "555-0101"
         });
 
         Assert.False(result.IsSuccess);
