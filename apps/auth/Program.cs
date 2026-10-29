@@ -107,6 +107,7 @@ static void AddBuilderServices(
     services.AddSwaggerGen();
 
     services.AddScoped<IJwtService, JwtService>();
+    services.AddScoped<IAuthService, AuthService>();
 }
 
 public partial class Program { }
