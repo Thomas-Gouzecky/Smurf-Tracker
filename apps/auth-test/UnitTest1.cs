@@ -123,7 +123,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_WhenCreationSucceeds_ReturnsSuccess()
+    public async Task RegisterAsync_WhenCreationSucceeds_ReturnsAccessTokenAndSignsUserIn()
     {
         var userManager = CreateUserManager();
         userManager
@@ -133,10 +133,25 @@ public class AuthServiceTests
                     user.UserName == "new@example.com"),
                 "password"))
             .ReturnsAsync(IdentityResult.Success);
+        var signInManager = CreateSignInManager(userManager.Object);
+        signInManager
+            .Setup(manager => manager.SignInAsync(
+                It.Is<ApplicationUser>(user =>
+                    user.Email == "new@example.com" &&
+                    user.UserName == "new@example.com"),
+                false,
+                null))
+            .Returns(Task.CompletedTask);
+        var jwtService = new Mock<IJwtService>();
+        jwtService
+            .Setup(jwt => jwt.CreateAccessToken(It.Is<ApplicationUser>(user =>
+                user.Email == "new@example.com" &&
+                user.UserName == "new@example.com")))
+            .Returns("registration-access-token");
         var service = CreateService(
-            CreateSignInManager(userManager.Object),
+            signInManager,
             userManager,
-            new Mock<IJwtService>());
+            jwtService);
 
         var result = await service.RegisterAsync(new RegisterRequest
         {
@@ -145,7 +160,19 @@ public class AuthServiceTests
         });
 
         Assert.True(result.IsSuccess);
+        Assert.Equal("registration-access-token", result.AccessToken);
+        Assert.Equal("Bearer", result.TokenType);
+        Assert.Equal(3600, result.ExpiresIn);
         Assert.Empty(result.Errors!);
+        signInManager.Verify(manager => manager.SignInAsync(
+            It.Is<ApplicationUser>(user =>
+                user.Email == "new@example.com" &&
+                user.UserName == "new@example.com"),
+            false,
+            null), Times.Once);
+        jwtService.Verify(jwt => jwt.CreateAccessToken(It.Is<ApplicationUser>(user =>
+            user.Email == "new@example.com" &&
+            user.UserName == "new@example.com")), Times.Once);
     }
 
     [Fact]

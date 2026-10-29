@@ -70,9 +70,14 @@ public sealed class AuthService : IAuthService
         var user = new ApplicationUser { UserName = request.Email, Email = request.Email };
         var result = await _userManager.CreateAsync(user, request.Password);
 
-        return result.Succeeded
-            ? AuthResult.Success()
-            : AuthResult.Failure(result.Errors.Select(error =>
+        if (result.Succeeded)
+        {
+            await _signInManager.SignInAsync(user, isPersistent: false);
+            var accessToken = _jwtService.CreateAccessToken(user);
+            return AuthResult.Success(accessToken);
+        }
+
+        return AuthResult.Failure(result.Errors.Select(error =>
                 new AuthError(
                     error.Code,
                     error.Description,
