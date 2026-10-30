@@ -30,8 +30,8 @@ public class SecurityController : ControllerBase
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
     {
         var result = await _securityService.ResetPasswordAsync(request.Email, request.ResetCode, request.NewPassword);
-        if (!result)
-            return BadRequest(new { Message = "Failed to reset password." });
+        if (!result.Succeeded)
+            return BadRequest(new { Message = "Failed to reset password.", Errors = result.Errors });
 
         return Ok(new { Message = "Password has been reset successfully." });
     }
@@ -46,8 +46,8 @@ public class SecurityController : ControllerBase
             return Unauthorized();
 
         var result = await _securityService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
-        if (!result)
-            return BadRequest(new { Message = "Failed to change password." });
+        if (!result.Succeeded)
+            return BadRequest(new { Message = "Failed to change password.", Errors = result.Errors });
 
         return Ok(new { Message = "Password has been changed successfully." });
     }
@@ -62,8 +62,8 @@ public class SecurityController : ControllerBase
             return Unauthorized();
 
         var result = await _securityService.VerifyEmailAsync(userId, request.VerificationCode);
-        if (!result)
-            return BadRequest(new { Message = "Failed to verify email." });
+        if (!result.Succeeded)
+            return BadRequest(new { Message = "Failed to verify email.", Errors = result.Errors });
 
         return Ok(new { Message = "Email has been verified successfully." });
     }

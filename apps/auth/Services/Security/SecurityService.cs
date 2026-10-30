@@ -47,16 +47,20 @@ public class SecurityService : ISecurityService
     /// <param name="resetToken"></param>
     /// <param name="newPassword"></param>
     /// <returns></returns>
-    public async Task<bool> ResetPasswordAsync(string email, string resetToken, string newPassword)
+    public async Task<IdentityResult> ResetPasswordAsync(string email, string resetToken, string newPassword)
     {
         var user = await _userManager.FindByEmailAsync(email);
         if (user is null)
         {
-            return false;
+            return IdentityResult.Failed(new IdentityError
+            {
+                Code = "UserNotFound",
+                Description = "User not found"
+            });
         }
 
         var result = await _userManager.ResetPasswordAsync(user, resetToken, newPassword);
-        return result.Succeeded;
+        return result;
     }
 
     /// <summary>
@@ -66,16 +70,20 @@ public class SecurityService : ISecurityService
     /// <param name="currentPassword"></param>
     /// <param name="newPassword"></param>
     /// <returns></returns>
-    public async Task<bool> ChangePasswordAsync(string userId, string currentPassword, string newPassword)
+    public async Task<IdentityResult> ChangePasswordAsync(string userId, string currentPassword, string newPassword)
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null)
         {
-            return false;
+            return IdentityResult.Failed(new IdentityError
+            {
+                Code = "UserNotFound",
+                Description = "User not found"
+            });
         }
 
         var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
-        return result.Succeeded;
+        return result;
     }
 
     /// <summary>
@@ -84,16 +92,20 @@ public class SecurityService : ISecurityService
     /// <param name="userId"></param>
     /// <param name="verificationCode"></param>
     /// <returns></returns>
-    public async Task<bool> VerifyEmailAsync(string userId, string verificationCode)
+    public async Task<IdentityResult> VerifyEmailAsync(string userId, string verificationCode)
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null)
         {
-            return false;
+            return IdentityResult.Failed(new IdentityError
+            {
+                Code = "UserNotFound",
+                Description = "User not found"
+            });
         }
 
         var result = await _userManager.ConfirmEmailAsync(user, verificationCode);
-        return result.Succeeded;
+        return result;
     }
 
     /// <summary>
