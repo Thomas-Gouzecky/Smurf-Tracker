@@ -7,7 +7,7 @@ public sealed class EmailServiceClient : IEmailServiceClient
         _httpClient = httpClient;
     }
 
-    public async Task<bool> SendEmailAsync()
+    public async Task<bool> SendEmailAsync(SendEmailRequest request)
     {
         // Implement the logic to send an email using the external email service API.
         return await Task.FromResult(true);
