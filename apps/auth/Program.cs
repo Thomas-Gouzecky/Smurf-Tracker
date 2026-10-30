@@ -126,6 +126,8 @@ static void AddBuilderServices(
 
     services.AddScoped<IJwtService, JwtService>();
     services.AddScoped<IAuthService, AuthService>();
+    services.AddScoped<ISecurityService, SecurityService>();
+    services.AddScoped<IEmailServiceClient, EmailServiceClient>();
 }
 
 public partial class Program { }
