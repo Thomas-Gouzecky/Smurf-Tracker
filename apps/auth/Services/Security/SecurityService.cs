@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 
 public class SecurityService : ISecurityService
 {
@@ -19,15 +20,16 @@ public class SecurityService : ISecurityService
     public async Task<bool> ForgotPasswordAsync(string email)
     {
         var user = await _userManager.FindByEmailAsync(email);
-        if (user == null)
+        if (user is null)
         {
             return false;
         }
 
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        var encodedToken = System.Web.HttpUtility.UrlEncode(token);
-        var encodedUserId = System.Web.HttpUtility.UrlEncode(user.Id);
-        var resetUrl = $"https://yourapp.com/reset-password?userId={encodedUserId}&token={encodedToken}";
+        var resetUrl = QueryHelpers.AddQueryString("https://yourapp.com/reset-password", new Dictionary<string, string?>
+        {
+            { "userId", user.Id },
+            { "token", await _userManager.GeneratePasswordResetTokenAsync(user) }
+        });
 
         var result = await _emailServiceClient.SendEmailAsync(new SendEmailRequest
         {
@@ -48,7 +50,7 @@ public class SecurityService : ISecurityService
     public async Task<bool> ResetPasswordAsync(string email, string resetToken, string newPassword)
     {
         var user = await _userManager.FindByEmailAsync(email);
-        if (user == null)
+        if (user is null)
         {
             return false;
         }
@@ -67,7 +69,7 @@ public class SecurityService : ISecurityService
     public async Task<bool> ChangePasswordAsync(string userId, string currentPassword, string newPassword)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
+        if (user is null)
         {
             return false;
         }
@@ -85,7 +87,7 @@ public class SecurityService : ISecurityService
     public async Task<bool> VerifyEmailAsync(string userId, string verificationCode)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
+        if (user is null)
         {
             return false;
         }
@@ -103,7 +105,7 @@ public class SecurityService : ISecurityService
     public async Task<bool> ResendVerificationEmailAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
+        if (user is null)
         {
             return false;
         }
@@ -113,9 +115,11 @@ public class SecurityService : ISecurityService
             return true; // Email is already confirmed
         }
 
-        var encodedUserId = System.Web.HttpUtility.UrlEncode(user.Id);
-        var encodedToken = System.Web.HttpUtility.UrlEncode(await _userManager.GenerateEmailConfirmationTokenAsync(user));
-        var verificationUrl = $"https://yourapp.com/verify-email?userId={encodedUserId}&token={encodedToken}";
+        var verificationUrl = QueryHelpers.AddQueryString("https://yourapp.com/verify-email", new Dictionary<string, string?>
+        {
+            { "userId", user.Id },
+            { "token", await _userManager.GenerateEmailConfirmationTokenAsync(user) }
+        });
 
         var result = await _emailServiceClient.SendEmailAsync(new SendEmailRequest
         {
