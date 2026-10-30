@@ -1,10 +1,7 @@
 public sealed class EmailServiceClient : IEmailServiceClient
 {
-    private readonly HttpClient _httpClient;
-
-    public EmailServiceClient(HttpClient httpClient)
+    public EmailServiceClient()
     {
-        _httpClient = httpClient;
     }
 
     public async Task<bool> SendEmailAsync(SendEmailRequest request)
