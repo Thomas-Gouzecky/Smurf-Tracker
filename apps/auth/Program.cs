@@ -59,7 +59,8 @@ static void AddBuilderServices(
             options.SignIn.RequireConfirmedAccount = false;
         })
         .AddEntityFrameworkStores<ApplicationDbContext>()
-        .AddSignInManager();
+        .AddSignInManager()
+        .AddDefaultTokenProviders();
 
     var issuer = configuration["Jwt:Issuer"]
         ?? throw new InvalidOperationException("Missing Jwt:Issuer");
