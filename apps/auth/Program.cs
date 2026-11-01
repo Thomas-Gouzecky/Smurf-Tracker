@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using OpenIddict.Abstractions;
+using OpenIddict.Validation.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,32 +19,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
     options.UseOpenIddict();
 });
-
-builder.Services.AddOpenIddict()
-    .AddCore(options =>
-    {
-        options.UseEntityFrameworkCore()
-            .UseDbContext<ApplicationDbContext>();
-    })
-    .AddServer(options =>
-    {
-        options.SetTokenEndpointUris("/connect/token");
-
-        options.AllowClientCredentialsFlow();
-
-        options.AcceptAnonymousClients();
-
-        options.AddDevelopmentEncryptionCertificate()
-            .AddDevelopmentSigningCertificate();
-
-        var instance = options.UseAspNetCore();
-        if (builder.Environment.IsDevelopment())
-        {
-            instance.DisableTransportSecurityRequirement();
-        }
-        instance
-            .EnableTokenEndpointPassthrough();
-    });
 
 if (!isMigration)
 {
@@ -118,6 +93,36 @@ static void AddBuilderServices(
         .AddSignInManager()
         .AddDefaultTokenProviders();
 
+    services.AddOpenIddict()
+        .AddCore(options =>
+        {
+            options.UseEntityFrameworkCore()
+                .UseDbContext<ApplicationDbContext>();
+        })
+        .AddServer(options =>
+        {
+            options.SetTokenEndpointUris("/connect/token");
+
+            options.AllowClientCredentialsFlow();
+
+            options.AcceptAnonymousClients();
+
+            options.AddDevelopmentEncryptionCertificate()
+                .AddDevelopmentSigningCertificate();
+
+            var instance = options.UseAspNetCore();
+            if (services.BuildServiceProvider().GetRequiredService<IWebHostEnvironment>().IsDevelopment())
+            {
+                instance.DisableTransportSecurityRequirement();
+            }
+            instance
+                .EnableTokenEndpointPassthrough();
+        })
+        .AddValidation(options =>
+        {
+            options.UseLocalServer();
+            options.UseAspNetCore();
+        });
     var issuer = configuration["Jwt:Issuer"]
         ?? throw new InvalidOperationException("Missing Jwt:Issuer");
 
@@ -128,34 +133,10 @@ static void AddBuilderServices(
         ?? throw new InvalidOperationException("Missing Jwt:SigningKey");
 
     services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme =
-                JwtBearerDefaults.AuthenticationScheme;
-
-            options.DefaultChallengeScheme =
-                JwtBearerDefaults.AuthenticationScheme;
-
-            options.DefaultScheme =
-                JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(options =>
-        {
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidIssuer = issuer,
-
-                ValidateAudience = true,
-                ValidAudience = audience,
-
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(
-                    Convert.FromBase64String(signingKey)),
-
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.FromSeconds(30)
-            };
-        });
+    {
+        options.DefaultScheme =
+            OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+    });
 
     services.AddAuthorization();
 
