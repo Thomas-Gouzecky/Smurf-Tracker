@@ -50,6 +50,8 @@ public static class OpenIddictApplicationSeeder
 
         descriptor.RedirectUris.Add(
             new Uri("http://localhost:5260/swagger/oauth2-redirect.html"));
+        descriptor.PostLogoutRedirectUris.Add(
+            new Uri("https://localhost:5260/swagger/"));
         AddAuthorizationCodePermissions(descriptor);
 
         return descriptor;
@@ -62,6 +64,7 @@ public static class OpenIddictApplicationSeeder
         descriptor.Permissions.Add(Permissions.Endpoints.Token);
         descriptor.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
         descriptor.Permissions.Add(Permissions.ResponseTypes.Code);
+        descriptor.Permissions.Add(Permissions.Endpoints.EndSession);
     }
 
     private static async Task UpsertAsync(
