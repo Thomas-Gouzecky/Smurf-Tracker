@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers;
@@ -9,13 +8,11 @@ namespace Backend.Controllers;
 [Route("api/auth")]
 public class CoreAuthController : ControllerBase
 {
-    private readonly IAuthService _authService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
 
-    public CoreAuthController(IAuthService authService, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+    public CoreAuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
     {
-        _authService = authService;
         _userManager = userManager;
         _signInManager = signInManager;
     }
@@ -45,11 +42,13 @@ public class CoreAuthController : ControllerBase
             return BadRequest();
         }
 
-        var result = await _authService.RegisterAsync(request);
-        if (!result.IsSuccess)
+        var user = new ApplicationUser { UserName = request.UserName, Email = request.Email, PhoneNumber = request.PhoneNumber };
+        var result = await _userManager.CreateAsync(user, request.Password);
+        if (!result.Succeeded)
         {
             return BadRequest(result);
         }
+        await _signInManager.SignInAsync(user, isPersistent: false);
 
         return LocalRedirect(returnUrl);
     }
@@ -66,7 +65,7 @@ public class CoreAuthController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentUser()
     {
-        var user = await _authService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
         if (user is null)
         {
             return NotFound();
