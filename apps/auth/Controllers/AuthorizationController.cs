@@ -161,4 +161,22 @@ public class AuthorizationController : Controller
             principal,
             OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
+
+    [HttpGet("~/connect/logout")]
+    [HttpPost("~/connect/logout")]
+    public async Task<IActionResult> Logout()
+    {
+        var request = HttpContext.GetOpenIddictServerRequest()
+            ?? throw new InvalidOperationException(
+                "The OpenID Connect request cannot be retrieved.");
+
+        await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+
+        return SignOut(
+            new AuthenticationProperties
+            {
+                RedirectUri = request.PostLogoutRedirectUri?.ToString()
+            },
+            OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
 }

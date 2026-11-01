@@ -9,6 +9,8 @@ public static class LoginEndpoints
         endpoints.MapPost("/login", SubmitLogin);
         endpoints.MapGet("/register", ShowRegister);
         endpoints.MapPost("/register", SubmitRegister);
+        endpoints.MapGet("/logout", Logout);
+        endpoints.MapPost("/logout", Logout);
 
         return endpoints;
     }
@@ -169,6 +171,13 @@ public static class LoginEndpoints
         }
 
         return Results.Redirect(returnUrl);
+    }
+
+    private static async Task<IResult> Logout(
+        SignInManager<ApplicationUser> signInManager)
+    {
+        await signInManager.SignOutAsync();
+        return Results.Redirect("/");
     }
 
     private static bool IsLocalReturnUrl(string returnUrl)
