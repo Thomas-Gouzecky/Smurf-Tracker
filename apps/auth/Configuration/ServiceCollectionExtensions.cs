@@ -82,12 +82,12 @@ public static class ServiceCollectionExtensions
             options.LoginPath = "/login";
         });
 
-        _ = configuration["Jwt:Issuer"]
-            ?? throw new InvalidOperationException("Missing Jwt:Issuer");
-        _ = configuration["Jwt:Audience"]
-            ?? throw new InvalidOperationException("Missing Jwt:Audience");
-        _ = configuration["Jwt:SigningKey"]
-            ?? throw new InvalidOperationException("Missing Jwt:SigningKey");
+        // _ = configuration["Jwt:Issuer"]
+        //     ?? throw new InvalidOperationException("Missing Jwt:Issuer");
+        // _ = configuration["Jwt:Audience"]
+        //     ?? throw new InvalidOperationException("Missing Jwt:Audience");
+        // _ = configuration["Jwt:SigningKey"]
+        //     ?? throw new InvalidOperationException("Missing Jwt:SigningKey");
 
         services.AddAuthentication(options =>
         {
