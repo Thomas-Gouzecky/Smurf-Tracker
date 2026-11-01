@@ -86,6 +86,8 @@ if (isMigration)
         };
 
         descriptor.RedirectUris.Add(new Uri("http://localhost:5118/callback"));
+        descriptor.RedirectUris.Add(
+            new Uri("http://localhost:5260/swagger/oauth2-redirect.html"));
         descriptor.Permissions.Add(Permissions.Endpoints.Authorization);
         descriptor.Permissions.Add(Permissions.Endpoints.Token);
 
