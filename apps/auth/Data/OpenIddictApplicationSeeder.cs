@@ -1,0 +1,81 @@
+using Microsoft.EntityFrameworkCore;
+using OpenIddict.Abstractions;
+using static OpenIddict.Abstractions.OpenIddictConstants;
+
+public static class OpenIddictApplicationSeeder
+{
+    public static async Task SeedOpenIddictApplicationsAsync(
+        this WebApplication app)
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        if (dbContext.Database.IsRelational())
+        {
+            await dbContext.Database.MigrateAsync();
+        }
+
+        var manager = scope.ServiceProvider
+            .GetRequiredService<IOpenIddictApplicationManager>();
+
+        await UpsertAsync(manager, CreateServiceWorkerDescriptor());
+        await UpsertAsync(manager, CreateSwaggerDescriptor());
+    }
+
+    private static OpenIddictApplicationDescriptor CreateServiceWorkerDescriptor()
+    {
+        var descriptor = new OpenIddictApplicationDescriptor
+        {
+            ClientId = "service-worker",
+            ClientType = ClientTypes.Public,
+            DisplayName = "Service Worker"
+        };
+
+        descriptor.RedirectUris.Add(new Uri("http://localhost:5118/callback"));
+        AddAuthorizationCodePermissions(descriptor);
+        descriptor.Permissions.Add(Permissions.Scopes.Profile);
+
+        return descriptor;
+    }
+
+    private static OpenIddictApplicationDescriptor CreateSwaggerDescriptor()
+    {
+        var descriptor = new OpenIddictApplicationDescriptor
+        {
+            ClientId = "swagger-ui",
+            ClientType = ClientTypes.Public,
+            DisplayName = "Swagger UI"
+        };
+
+        descriptor.RedirectUris.Add(
+            new Uri("http://localhost:5260/swagger/oauth2-redirect.html"));
+        AddAuthorizationCodePermissions(descriptor);
+
+        return descriptor;
+    }
+
+    private static void AddAuthorizationCodePermissions(
+        OpenIddictApplicationDescriptor descriptor)
+    {
+        descriptor.Permissions.Add(Permissions.Endpoints.Authorization);
+        descriptor.Permissions.Add(Permissions.Endpoints.Token);
+        descriptor.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
+        descriptor.Permissions.Add(Permissions.ResponseTypes.Code);
+    }
+
+    private static async Task UpsertAsync(
+        IOpenIddictApplicationManager manager,
+        OpenIddictApplicationDescriptor descriptor)
+    {
+        var application = await manager.FindByClientIdAsync(descriptor.ClientId!);
+        if (application is null)
+        {
+            await manager.CreateAsync(descriptor);
+        }
+        else
+        {
+            await manager.UpdateAsync(application, descriptor);
+        }
+    }
+}
