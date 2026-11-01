@@ -86,8 +86,6 @@ if (isMigration)
         };
 
         descriptor.RedirectUris.Add(new Uri("http://localhost:5118/callback"));
-        descriptor.RedirectUris.Add(
-            new Uri("http://localhost:5260/swagger/oauth2-redirect.html"));
         descriptor.Permissions.Add(Permissions.Endpoints.Authorization);
         descriptor.Permissions.Add(Permissions.Endpoints.Token);
 
@@ -95,6 +93,22 @@ if (isMigration)
         descriptor.Permissions.Add(Permissions.ResponseTypes.Code);
 
         descriptor.Permissions.Add(Permissions.Scopes.Profile);
+
+        var swaggerDescriptor = new OpenIddictApplicationDescriptor
+        {
+            ClientId = "swagger-ui",
+            ClientType = ClientTypes.Public,
+            DisplayName = "Swagger UI"
+        };
+
+        swaggerDescriptor.RedirectUris.Add(
+            new Uri("http://localhost:5260/swagger/oauth2-redirect.html"));
+
+        swaggerDescriptor.Permissions.Add(Permissions.Endpoints.Authorization);
+        swaggerDescriptor.Permissions.Add(Permissions.Endpoints.Token);
+
+        swaggerDescriptor.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
+        swaggerDescriptor.Permissions.Add(Permissions.ResponseTypes.Code);
 
         var application = await manager.FindByClientIdAsync(descriptor.ClientId);
         if (application is null)
@@ -105,6 +119,16 @@ if (isMigration)
         {
             await manager.UpdateAsync(application, descriptor);
         }
+
+        application = await manager.FindByClientIdAsync(swaggerDescriptor.ClientId);
+        if (application is null)
+        {
+            await manager.CreateAsync(swaggerDescriptor);
+        }
+        else
+        {
+            await manager.UpdateAsync(application, swaggerDescriptor);
+        }
     }
     return;
 }
@@ -112,7 +136,13 @@ if (isMigration)
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Auth API v1");
+        options.OAuthClientId("swagger-ui");
+        options.OAuthUsePkce();
+        options.OAuthScopes("openid");
+    });
 
 }
 
@@ -132,6 +162,74 @@ app.UseCors(options =>
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/login", (HttpContext context) =>
+{
+    var returnUrl = context.Request.Query["ReturnUrl"].ToString();
+    if (!IsLocalReturnUrl(returnUrl))
+    {
+        returnUrl = "/";
+    }
+
+    return Results.Content($"""
+        <!doctype html>
+        <html>
+        <head><title>Log in</title></head>
+        <body>
+            <h1>Log in</h1>
+            <form method="post" action="/login">
+                <input type="hidden" name="returnUrl"
+                       value="{System.Net.WebUtility.HtmlEncode(returnUrl)}">
+                <label>
+                    Username
+                    <input name="userName" autocomplete="username" required>
+                </label>
+                <br>
+                <label>
+                    Password
+                    <input name="password" type="password"
+                           autocomplete="current-password" required>
+                </label>
+                <br>
+                <label>
+                    <input name="rememberMe" type="checkbox">
+                    Remember me
+                </label>
+                <br>
+                <button type="submit">Log in</button>
+            </form>
+        </body>
+        </html>
+        """, "text/html");
+});
+
+app.MapPost("/login", async (
+    HttpContext context,
+    SignInManager<ApplicationUser> signInManager) =>
+{
+    var form = await context.Request.ReadFormAsync();
+    var returnUrl = form["returnUrl"].ToString();
+    if (!IsLocalReturnUrl(returnUrl))
+    {
+        return Results.BadRequest("Invalid return URL.");
+    }
+
+    var result = await signInManager.PasswordSignInAsync(
+        form["userName"].ToString(),
+        form["password"].ToString(),
+        string.Equals(form["rememberMe"], "on", StringComparison.Ordinal),
+        lockoutOnFailure: true);
+
+    if (!result.Succeeded)
+    {
+        return Results.Content(
+            "<h1>Login failed</h1><p>Invalid username or password.</p>",
+            "text/html",
+            statusCode: StatusCodes.Status401Unauthorized);
+    }
+
+    return Results.Redirect(returnUrl);
+});
+
 app.MapControllers();
 
 await app.RunAsync();
@@ -147,6 +245,10 @@ static void AddBuilderServices(
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddSignInManager()
         .AddDefaultTokenProviders();
+    services.ConfigureApplicationCookie(options =>
+    {
+        options.LoginPath = "/login";
+    });
 
     var issuer = configuration["Jwt:Issuer"]
         ?? throw new InvalidOperationException("Missing Jwt:Issuer");
@@ -170,20 +272,30 @@ static void AddBuilderServices(
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen(options =>
     {
-        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        options.AddSecurityDefinition("OpenIddict", new OpenApiSecurityScheme
         {
-            Name = "Authorization",
-            Type = SecuritySchemeType.Http,
-            Scheme = "bearer",
-            BearerFormat = "JWT",
-            In = ParameterLocation.Header,
-            Description = "Enter your JWT access token."
+            Type = SecuritySchemeType.OAuth2,
+            Description = "Sign in with the OpenIddict authorization code flow.",
+            Flows = new OpenApiOAuthFlows
+            {
+                AuthorizationCode = new OpenApiOAuthFlow
+                {
+                    AuthorizationUrl = new Uri(
+                        "http://localhost:5260/connect/authorize"),
+                    TokenUrl = new Uri("http://localhost:5260/connect/token"),
+                    Scopes = new Dictionary<string, string>
+                    {
+                        ["openid"] = "Sign in"
+                    }
+                }
+            }
         });
 
         options.AddSecurityRequirement(document =>
         new OpenApiSecurityRequirement
         {
-            [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+            [new OpenApiSecuritySchemeReference("Bearer", document)] = [],
+            [new OpenApiSecuritySchemeReference("OpenIddict", document)] = []
         });
     });
 
@@ -191,6 +303,13 @@ static void AddBuilderServices(
     services.AddScoped<IAuthService, AuthService>();
     services.AddScoped<ISecurityService, SecurityService>();
     services.AddScoped<IEmailServiceClient, EmailServiceClient>();
+}
+
+static bool IsLocalReturnUrl(string returnUrl)
+{
+    return returnUrl.StartsWith("/", StringComparison.Ordinal) &&
+        !returnUrl.StartsWith("//", StringComparison.Ordinal) &&
+        !returnUrl.StartsWith("/\\", StringComparison.Ordinal);
 }
 
 public partial class Program { }
