@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,21 +10,31 @@ namespace Backend.Controllers;
 public class CoreAuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
 
-    public CoreAuthController(IAuthService authService)
+    public CoreAuthController(IAuthService authService, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
     {
         _authService = authService;
+        _userManager = userManager;
+        _signInManager = signInManager;
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] UserLoginRequest request)
     {
-        var result = await _authService.LoginAsync(request);
-        if (!result.IsSuccess)
+        if (!Url.IsLocalUrl(request.ReturnUrl))
         {
-            return Unauthorized(result);
+            return BadRequest();
         }
-        return Ok(result);
+
+        var result = await _signInManager.PasswordSignInAsync(request.UserName, request.Password, request.RememberMe, lockoutOnFailure: true);
+        if (!result.Succeeded)
+        {
+            return Unauthorized(new { Message = "Invalid login attempt." });
+        }
+
+        return LocalRedirect(request.ReturnUrl);
     }
 
     [HttpPost("register")]

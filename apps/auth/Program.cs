@@ -93,7 +93,7 @@ static void AddBuilderServices(
         .AddSignInManager()
         .AddDefaultTokenProviders();
 
-    services.AddOpenIddict()
+    _ = services.AddOpenIddict()
         .AddCore(options =>
         {
             options.UseEntityFrameworkCore()
@@ -102,6 +102,10 @@ static void AddBuilderServices(
         .AddServer(options =>
         {
             options.SetTokenEndpointUris("/connect/token");
+            options.SetAuthorizationEndpointUris("/connect/authorize");
+
+            options.AllowAuthorizationCodeFlow()
+                .RequireProofKeyForCodeExchange();
 
             options.AllowClientCredentialsFlow();
 
