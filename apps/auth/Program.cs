@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using OpenIddict.Abstractions;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,7 +49,7 @@ var app = builder.Build();
 
 if (isMigration)
 {
-    using (var scope = app.Services.CreateScope())
+    await using (var scope = app.Services.CreateAsyncScope())
     {
         var dbContext = scope.ServiceProvider
             .GetRequiredService<ApplicationDbContext>();
@@ -55,6 +57,24 @@ if (isMigration)
         if (dbContext.Database.IsRelational())
         {
             await dbContext.Database.MigrateAsync();
+        }
+
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await context.Database.EnsureCreatedAsync();
+
+        var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
+        if (await manager.FindByClientIdAsync("service-worker") is null)
+        {
+            await manager.CreateAsync(new OpenIddictApplicationDescriptor
+            {
+                ClientId = "service-worker",
+                ClientSecret = "388D45FA-B36B-4988-BA59-B187D329C207",
+                Permissions =
+            {
+                Permissions.Endpoints.Token,
+                Permissions.GrantTypes.ClientCredentials
+            }
+            });
         }
     }
     return;
@@ -78,7 +98,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
 
 static void AddBuilderServices(
     IServiceCollection services,
