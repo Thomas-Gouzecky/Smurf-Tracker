@@ -1,0 +1,28 @@
+{
+  "name": "auth-service",
+  "sourceRoot": "apps/auth",
+  "projectType": "application",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "dotnet run --project auth.csproj",
+        "cwd": "apps/auth"
+      }
+    },
+    "watch": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "dotnet watch run --project auth.csproj",
+        "cwd": "apps/auth"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "dotnet test",
+        "cwd": "apps/auth-test"
+      }
+    }
+  }
+}

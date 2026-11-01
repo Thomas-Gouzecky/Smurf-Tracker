@@ -1,0 +1,6 @@
+include:
+  - postgres/docker-compose.postgres.yaml
+
+networks:
+  smurftracker_network:
+    driver: bridge
