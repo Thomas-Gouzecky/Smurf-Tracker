@@ -34,18 +34,24 @@ public class CoreAuthController : ControllerBase
             return Unauthorized(new { Message = "Invalid login attempt." });
         }
 
-        return Redirect(request.ReturnUrl);
+        return LocalRedirect(request.ReturnUrl);
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] UserRegisterRequest request)
+    public async Task<IActionResult> Register([FromForm] UserRegisterRequest request, [FromForm] string returnUrl)
     {
+        if (!Url.IsLocalUrl(returnUrl))
+        {
+            return BadRequest();
+        }
+
         var result = await _authService.RegisterAsync(request);
         if (!result.IsSuccess)
         {
             return BadRequest(result);
         }
-        return Ok(result);
+
+        return LocalRedirect(returnUrl);
     }
 
     [Authorize]
