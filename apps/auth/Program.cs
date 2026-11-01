@@ -20,6 +20,42 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseOpenIddict();
 });
 
+builder.Services.AddOpenIddict()
+    .AddCore(options =>
+    {
+        options.UseEntityFrameworkCore()
+            .UseDbContext<ApplicationDbContext>();
+    })
+    .AddServer(options =>
+    {
+        options.SetTokenEndpointUris("/connect/token");
+        options.SetAuthorizationEndpointUris("/connect/authorize");
+
+        options.AllowAuthorizationCodeFlow()
+            .RequireProofKeyForCodeExchange();
+
+        options.AllowClientCredentialsFlow();
+
+        options.AcceptAnonymousClients();
+
+        options.AddDevelopmentEncryptionCertificate()
+            .AddDevelopmentSigningCertificate();
+
+        var instance = options.UseAspNetCore();
+        if (builder.Environment.IsDevelopment())
+        {
+            instance.DisableTransportSecurityRequirement();
+        }
+        instance
+            .EnableAuthorizationEndpointPassthrough()
+            .EnableTokenEndpointPassthrough();
+    })
+    .AddValidation(options =>
+    {
+        options.UseLocalServer();
+        options.UseAspNetCore();
+    });
+
 if (!isMigration)
 {
     AddBuilderServices(builder.Services, builder.Configuration);
@@ -40,21 +76,27 @@ if (isMigration)
         }
 
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await context.Database.EnsureCreatedAsync();
 
         var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
-        if (await manager.FindByClientIdAsync("service-worker") is null)
+        var descriptor = new OpenIddictApplicationDescriptor
         {
-            await manager.CreateAsync(new OpenIddictApplicationDescriptor
-            {
-                ClientId = "service-worker",
-                ClientSecret = "388D45FA-B36B-4988-BA59-B187D329C207",
-                Permissions =
-            {
-                Permissions.Endpoints.Token,
-                Permissions.GrantTypes.ClientCredentials
-            }
-            });
+            ClientId = "service-worker",
+            ClientType = ClientTypes.Public,
+            DisplayName = "Service Worker",
+        };
+
+        descriptor.RedirectUris.Add(new Uri("http://localhost:5260/callback"));
+        descriptor.Permissions.Add(Permissions.Endpoints.Authorization);
+        descriptor.Permissions.Add(Permissions.Endpoints.Token);
+
+        descriptor.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
+        descriptor.Permissions.Add(Permissions.ResponseTypes.Code);
+
+        descriptor.Permissions.Add(Permissions.Scopes.Profile);
+
+        if (await manager.FindByClientIdAsync(descriptor.ClientId) is null)
+        {
+            await manager.CreateAsync(descriptor);
         }
     }
     return;
@@ -93,40 +135,6 @@ static void AddBuilderServices(
         .AddSignInManager()
         .AddDefaultTokenProviders();
 
-    _ = services.AddOpenIddict()
-        .AddCore(options =>
-        {
-            options.UseEntityFrameworkCore()
-                .UseDbContext<ApplicationDbContext>();
-        })
-        .AddServer(options =>
-        {
-            options.SetTokenEndpointUris("/connect/token");
-            options.SetAuthorizationEndpointUris("/connect/authorize");
-
-            options.AllowAuthorizationCodeFlow()
-                .RequireProofKeyForCodeExchange();
-
-            options.AllowClientCredentialsFlow();
-
-            options.AcceptAnonymousClients();
-
-            options.AddDevelopmentEncryptionCertificate()
-                .AddDevelopmentSigningCertificate();
-
-            var instance = options.UseAspNetCore();
-            if (services.BuildServiceProvider().GetRequiredService<IWebHostEnvironment>().IsDevelopment())
-            {
-                instance.DisableTransportSecurityRequirement();
-            }
-            instance
-                .EnableTokenEndpointPassthrough();
-        })
-        .AddValidation(options =>
-        {
-            options.UseLocalServer();
-            options.UseAspNetCore();
-        });
     var issuer = configuration["Jwt:Issuer"]
         ?? throw new InvalidOperationException("Missing Jwt:Issuer");
 
