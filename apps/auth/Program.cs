@@ -85,7 +85,7 @@ if (isMigration)
             DisplayName = "Service Worker",
         };
 
-        descriptor.RedirectUris.Add(new Uri("http://localhost:5260/callback"));
+        descriptor.RedirectUris.Add(new Uri("http://localhost:5118/callback"));
         descriptor.Permissions.Add(Permissions.Endpoints.Authorization);
         descriptor.Permissions.Add(Permissions.Endpoints.Token);
 
@@ -94,9 +94,14 @@ if (isMigration)
 
         descriptor.Permissions.Add(Permissions.Scopes.Profile);
 
-        if (await manager.FindByClientIdAsync(descriptor.ClientId) is null)
+        var application = await manager.FindByClientIdAsync(descriptor.ClientId);
+        if (application is null)
         {
             await manager.CreateAsync(descriptor);
+        }
+        else
+        {
+            await manager.UpdateAsync(application, descriptor);
         }
     }
     return;
@@ -114,7 +119,13 @@ app.UseDeveloperExceptionPage();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 
-app.UseCors();
+app.UseCors(options =>
+{
+    options.WithOrigins("http://localhost:5118")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
+});
 
 app.UseAuthentication();
 app.UseAuthorization();

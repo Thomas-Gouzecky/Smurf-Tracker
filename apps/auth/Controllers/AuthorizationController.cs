@@ -47,6 +47,22 @@ public class AuthorizationController : Controller
             return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
+        if (request.IsAuthorizationCodeGrantType())
+        {
+            var result = await HttpContext.AuthenticateAsync(
+                OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+            if (!result.Succeeded || result.Principal is null)
+            {
+                throw new InvalidOperationException(
+                    "The authorization code cannot be redeemed.");
+            }
+
+            return SignIn(
+                result.Principal,
+                OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        }
+
         throw new InvalidOperationException("The specified grant type is not supported.");
     }
 
