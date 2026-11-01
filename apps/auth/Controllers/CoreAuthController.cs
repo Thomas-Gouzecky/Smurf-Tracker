@@ -34,7 +34,7 @@ public class CoreAuthController : ControllerBase
             return Unauthorized(new { Message = "Invalid login attempt." });
         }
 
-        return LocalRedirect(request.ReturnUrl);
+        return Redirect(request.ReturnUrl);
     }
 
     [HttpPost("register")]
