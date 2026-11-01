@@ -36,7 +36,12 @@ builder.Services.AddOpenIddict()
         options.AddDevelopmentEncryptionCertificate()
             .AddDevelopmentSigningCertificate();
 
-        options.UseAspNetCore()
+        var instance = options.UseAspNetCore();
+        if (builder.Environment.IsDevelopment())
+        {
+            instance.DisableTransportSecurityRequirement();
+        }
+        instance
             .EnableTokenEndpointPassthrough();
     });
 
@@ -84,6 +89,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
 }
 
 app.UseDeveloperExceptionPage();
