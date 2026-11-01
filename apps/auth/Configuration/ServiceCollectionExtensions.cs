@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions
             {
                 options.SetTokenEndpointUris("/connect/token");
                 options.SetAuthorizationEndpointUris("/connect/authorize");
+                options.SetEndSessionEndpointUris("/connect/logout");
 
                 options.AllowAuthorizationCodeFlow()
                     .RequireProofKeyForCodeExchange();
@@ -54,7 +55,8 @@ public static class ServiceCollectionExtensions
 
                 instance
                     .EnableAuthorizationEndpointPassthrough()
-                    .EnableTokenEndpointPassthrough();
+                    .EnableTokenEndpointPassthrough()
+                    .EnableEndSessionEndpointPassthrough();
             })
             .AddValidation(options =>
             {
