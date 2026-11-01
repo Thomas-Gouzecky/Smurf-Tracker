@@ -58,12 +58,8 @@ public class CoreAuthController : ControllerBase
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        var result = await _authService.LogoutAsync();
-        if (!result.IsSuccess)
-        {
-            return BadRequest(result);
-        }
-        return Ok(result);
+        await _signInManager.SignOutAsync();
+        return Ok();
     }
 
     [Authorize]
