@@ -36,11 +36,14 @@ public sealed class SessionService : ISessionService
         string userId,
         CancellationToken cancellationToken = default)
     {
-        return await _dbContext.UserSessions
+        var sessions = await _dbContext.UserSessions
             .AsNoTracking()
             .Where(session => session.UserId == userId && session.RevokedAt == null)
-            .OrderByDescending(session => session.LastActivityAt ?? session.CreatedAt)
             .ToListAsync(cancellationToken);
+
+        return sessions
+            .OrderByDescending(session => session.LastActivityAt ?? session.CreatedAt)
+            .ToList();
     }
 
     public async Task<bool> RevokeAsync(
@@ -69,13 +72,17 @@ public sealed class SessionService : ISessionService
         string userId,
         CancellationToken cancellationToken = default)
     {
-        await _dbContext.UserSessions
+        var sessions = await _dbContext.UserSessions
             .Where(session => session.UserId == userId && session.RevokedAt == null)
-            .ExecuteUpdateAsync(
-                setters => setters.SetProperty(
-                    session => session.RevokedAt,
-                    DateTimeOffset.UtcNow),
-                cancellationToken);
+            .ToListAsync(cancellationToken);
+
+        var revokedAt = DateTimeOffset.UtcNow;
+        foreach (var session in sessions)
+        {
+            session.RevokedAt = revokedAt;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public Task<bool> IsActiveAsync(
