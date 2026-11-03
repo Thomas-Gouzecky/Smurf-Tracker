@@ -11,7 +11,10 @@ public sealed class JwtService : IJwtService
         _configuration = configuration;
     }
 
-    public string CreateAccessToken(ApplicationUser user)
+    public string CreateAccessToken(ApplicationUser user) =>
+        CreateAccessToken(user, null);
+
+    public string CreateAccessToken(ApplicationUser user, Guid? sessionId)
     {
         var issuer = _configuration["Jwt:Issuer"];
         var audience = _configuration["Jwt:Audience"];
@@ -28,6 +31,13 @@ public sealed class JwtService : IJwtService
             new Claim(JwtRegisteredClaimNames.Name, user.UserName ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
         };
+
+        if (sessionId.HasValue)
+        {
+            claims = [.. claims, new Claim(
+                SessionClaimTypes.SessionId,
+                sessionId.Value.ToString())];
+        }
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -82,6 +83,30 @@ public static class ServiceCollectionExtensions
         services.ConfigureApplicationCookie(options =>
         {
             options.LoginPath = "/login";
+            options.Events.OnSigningIn = async context =>
+            {
+                var userId = context.Principal?.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
+                if (userId is null)
+                {
+                    throw new InvalidOperationException(
+                        "A user ID is required to create an authentication session.");
+                }
+
+                var sessionService = context.HttpContext.RequestServices
+                    .GetRequiredService<ISessionService>();
+                var sessionId = await sessionService.CreateAsync(
+                    userId,
+                    "identity-cookie",
+                    context.HttpContext.Request.Headers.UserAgent.ToString(),
+                    context.HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    context.HttpContext.RequestAborted);
+
+                context.Principal!.AddIdentity(new ClaimsIdentity(
+                [
+                    new Claim(SessionClaimTypes.SessionId, sessionId.ToString())
+                ]));
+            };
         });
 
         // _ = configuration["Jwt:Issuer"]
@@ -135,6 +160,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ISecurityService, SecurityService>();
         services.AddScoped<IEmailServiceClient, EmailServiceClient>();
+        services.AddScoped<ISessionService, SessionService>();
 
         return services;
     }
