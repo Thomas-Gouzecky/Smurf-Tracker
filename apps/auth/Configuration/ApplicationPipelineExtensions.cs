@@ -30,6 +30,7 @@ public static class ApplicationPipelineExtensions
         });
 
         app.UseAuthentication();
+        app.UseMiddleware<SessionValidationMiddleware>();
         app.UseAuthorization();
 
         return app;

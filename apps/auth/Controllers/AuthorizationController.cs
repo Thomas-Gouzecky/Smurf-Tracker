@@ -121,6 +121,23 @@ public class AuthorizationController : Controller
 
         // Create a claims principal using ASP.NET Core Identity.
         var principal = await _signInManager.CreateUserPrincipalAsync(user);
+        var sessionId = ISessionService.GetSessionId(result.Principal!);
+        if (sessionId is null)
+        {
+            var sessionService = HttpContext.RequestServices
+                .GetRequiredService<ISessionService>();
+            var createdSessionId = await sessionService.CreateAsync(
+                user.Id,
+                request.ClientId ?? "oidc",
+                Request.Headers.UserAgent.ToString(),
+                HttpContext.Connection.RemoteIpAddress?.ToString());
+            principal.AddIdentity(new ClaimsIdentity(
+            [
+                new Claim(
+                    SessionClaimTypes.SessionId,
+                    createdSessionId.ToString())
+            ]));
+        }
 
         // Set the subject claim identifying the user.
         principal.SetClaim(
@@ -151,6 +168,11 @@ public class AuthorizationController : Controller
             [
                 OpenIddictConstants.Destinations.AccessToken,
                 OpenIddictConstants.Destinations.IdentityToken
+            ],
+
+            SessionClaimTypes.SessionId =>
+            [
+                OpenIddictConstants.Destinations.AccessToken
             ],
 
             _ => []

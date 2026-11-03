@@ -7,15 +7,18 @@ public sealed class AuthService : IAuthService
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IJwtService _jwtService;
+    private readonly ISessionService? _sessionService;
 
     public AuthService(
         SignInManager<ApplicationUser> signInManager,
         UserManager<ApplicationUser> userManager,
-        IJwtService jwtService)
+        IJwtService jwtService,
+        ISessionService? sessionService = null)
     {
         _signInManager = signInManager;
         _userManager = userManager;
         _jwtService = jwtService;
+        _sessionService = sessionService;
     }
 
     /// <summary>
@@ -55,7 +58,11 @@ public sealed class AuthService : IAuthService
             });
         }
 
-        var accessToken = _jwtService.CreateAccessToken(user);
+        var accessToken = _sessionService is null
+            ? _jwtService.CreateAccessToken(user)
+            : _jwtService.CreateAccessToken(
+                user,
+                await _sessionService.CreateAsync(user.Id, "jwt", null, null));
 
         return AuthResult.Success(accessToken);
     }
