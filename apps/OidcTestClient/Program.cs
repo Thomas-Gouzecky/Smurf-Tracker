@@ -197,6 +197,7 @@ static string CreateAuthorizationPath(HttpContext context)
             ["client_id"] = "service-worker",
             ["redirect_uri"] = "http://localhost:5118/callback",
             ["response_type"] = "code",
+            ["scope"] = "openid smurftracker-read",
             ["state"] = state,
             ["code_challenge"] = codeChallenge,
             ["code_challenge_method"] = "S256"

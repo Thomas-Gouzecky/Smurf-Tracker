@@ -21,6 +21,9 @@ public static class OpenIddictApplicationSeeder
 
         await UpsertAsync(manager, CreateServiceWorkerDescriptor());
         await UpsertAsync(manager, CreateSwaggerDescriptor());
+        var scopeManager = scope.ServiceProvider
+            .GetRequiredService<IOpenIddictScopeManager>();
+        await RegisterScopesAsync(scopeManager);
     }
 
     private static OpenIddictApplicationDescriptor CreateServiceWorkerDescriptor()
@@ -35,6 +38,7 @@ public static class OpenIddictApplicationSeeder
         descriptor.RedirectUris.Add(new Uri("http://localhost:5118/callback"));
         AddAuthorizationCodePermissions(descriptor);
         descriptor.Permissions.Add(Permissions.Scopes.Profile);
+        AddSmurfTrackerScopePermissions(descriptor);
 
         return descriptor;
     }
@@ -53,6 +57,7 @@ public static class OpenIddictApplicationSeeder
         descriptor.PostLogoutRedirectUris.Add(
             new Uri("https://localhost:5260/swagger/"));
         AddAuthorizationCodePermissions(descriptor);
+        AddSmurfTrackerScopePermissions(descriptor);
 
         return descriptor;
     }
@@ -67,6 +72,15 @@ public static class OpenIddictApplicationSeeder
         descriptor.Permissions.Add(Permissions.Endpoints.EndSession);
     }
 
+    private static void AddSmurfTrackerScopePermissions(
+        OpenIddictApplicationDescriptor descriptor)
+    {
+        descriptor.Permissions.Add(
+            Permissions.Prefixes.Scope + OpenIddictScopes.Read);
+        descriptor.Permissions.Add(
+            Permissions.Prefixes.Scope + OpenIddictScopes.Write);
+    }
+
     private static async Task UpsertAsync(
         IOpenIddictApplicationManager manager,
         OpenIddictApplicationDescriptor descriptor)
@@ -79,6 +93,24 @@ public static class OpenIddictApplicationSeeder
         else
         {
             await manager.UpdateAsync(application, descriptor);
+        }
+    }
+
+    private static async Task RegisterScopesAsync(
+        IOpenIddictScopeManager manager)
+    {
+        var descriptors = OpenIddictScopes.GetScopes();
+        foreach (var descriptor in descriptors)
+        {
+            var scope = await manager.FindByNameAsync(descriptor.Name!);
+            if (scope is null)
+            {
+                await manager.CreateAsync(descriptor);
+            }
+            else
+            {
+                await manager.UpdateAsync(scope, descriptor);
+            }
         }
     }
 }

@@ -142,7 +142,9 @@ public static class ServiceCollectionExtensions
                             "http://localhost:5260/connect/token"),
                         Scopes = new Dictionary<string, string>
                         {
-                            ["openid"] = "Sign in"
+                            ["openid"] = "Sign in",
+                            [OpenIddictScopes.Read] = "Read SmurfTracker data",
+                            [OpenIddictScopes.Write] = "Write SmurfTracker data"
                         }
                     }
                 }
