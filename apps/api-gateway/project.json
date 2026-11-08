@@ -1,0 +1,28 @@
+{
+  "name": "api-gateway",
+  "sourceRoot": "apps/api-gateway",
+  "projectType": "application",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "dotnet run --project ApiGateway.csproj",
+        "cwd": "apps/api-gateway"
+      }
+    },
+    "watch": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "dotnet watch run --project ApiGateway.csproj",
+        "cwd": "apps/api-gateway"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "dotnet test",
+        "cwd": "apps/api-gateway-test"
+      }
+    }
+  }
+}

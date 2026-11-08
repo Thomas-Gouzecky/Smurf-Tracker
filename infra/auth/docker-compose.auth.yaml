@@ -1,6 +1,6 @@
 services:
   auth-service:
-    image: tomcheese/auth-service:0.2.0
+    image: tomcheese/auth-service:0.3.0
     container_name: auth-service
     ports:
       - '8080:8080'
@@ -15,7 +15,7 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - '${USERPROFILE}/.aspnet/https:/https:ro'
+      - './secrets/auth-service.pfx:/https/auth-service.pfx:ro'
     networks:
       - smurftracker_network
 

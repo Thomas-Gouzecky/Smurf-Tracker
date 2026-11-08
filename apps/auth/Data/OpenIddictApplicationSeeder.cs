@@ -19,11 +19,16 @@ public static class OpenIddictApplicationSeeder
         var manager = scope.ServiceProvider
             .GetRequiredService<IOpenIddictApplicationManager>();
 
-        await UpsertAsync(manager, CreateServiceWorkerDescriptor());
-        await UpsertAsync(manager, CreateSwaggerDescriptor());
+        var scopes = OpenIddictScopes.GetRequiredDefinitions(app.Configuration);
+        await UpsertAsync(manager, CreateServiceWorkerDescriptor(scopes));
+        await UpsertAsync(manager, CreateSwaggerDescriptor(scopes));
+        var scopeManager = scope.ServiceProvider
+            .GetRequiredService<IOpenIddictScopeManager>();
+        await RegisterScopesAsync(scopeManager, scopes);
     }
 
-    private static OpenIddictApplicationDescriptor CreateServiceWorkerDescriptor()
+    private static OpenIddictApplicationDescriptor CreateServiceWorkerDescriptor(
+        OpenIddictScopesOptions scopes)
     {
         var descriptor = new OpenIddictApplicationDescriptor
         {
@@ -35,11 +40,13 @@ public static class OpenIddictApplicationSeeder
         descriptor.RedirectUris.Add(new Uri("http://localhost:5118/callback"));
         AddAuthorizationCodePermissions(descriptor);
         descriptor.Permissions.Add(Permissions.Scopes.Profile);
+        AddScopePermissions(descriptor, scopes);
 
         return descriptor;
     }
 
-    private static OpenIddictApplicationDescriptor CreateSwaggerDescriptor()
+    private static OpenIddictApplicationDescriptor CreateSwaggerDescriptor(
+        OpenIddictScopesOptions scopes)
     {
         var descriptor = new OpenIddictApplicationDescriptor
         {
@@ -53,6 +60,7 @@ public static class OpenIddictApplicationSeeder
         descriptor.PostLogoutRedirectUris.Add(
             new Uri("https://localhost:5260/swagger/"));
         AddAuthorizationCodePermissions(descriptor);
+        AddScopePermissions(descriptor, scopes);
 
         return descriptor;
     }
@@ -67,6 +75,17 @@ public static class OpenIddictApplicationSeeder
         descriptor.Permissions.Add(Permissions.Endpoints.EndSession);
     }
 
+    private static void AddScopePermissions(
+        OpenIddictApplicationDescriptor descriptor,
+        OpenIddictScopesOptions scopes)
+    {
+        foreach (var scope in scopes.Definitions)
+        {
+            descriptor.Permissions.Add(
+                Permissions.Prefixes.Scope + scope.Name);
+        }
+    }
+
     private static async Task UpsertAsync(
         IOpenIddictApplicationManager manager,
         OpenIddictApplicationDescriptor descriptor)
@@ -79,6 +98,25 @@ public static class OpenIddictApplicationSeeder
         else
         {
             await manager.UpdateAsync(application, descriptor);
+        }
+    }
+
+    private static async Task RegisterScopesAsync(
+        IOpenIddictScopeManager manager,
+        OpenIddictScopesOptions options)
+    {
+        var descriptors = OpenIddictScopes.GetDescriptors(options);
+        foreach (var descriptor in descriptors)
+        {
+            var scope = await manager.FindByNameAsync(descriptor.Name!);
+            if (scope is null)
+            {
+                await manager.CreateAsync(descriptor);
+            }
+            else
+            {
+                await manager.UpdateAsync(scope, descriptor);
+            }
         }
     }
 }

@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using OpenIddict.Validation.AspNetCore;
+using OpenIddict.Server;
+using Microsoft.Extensions.Options;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 public static class ServiceCollectionExtensions
@@ -25,7 +27,8 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddOpenIddictServices(
         this IServiceCollection services,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        IConfiguration configuration)
     {
         services.AddOpenIddict()
             .AddCore(options =>
@@ -64,6 +67,10 @@ public static class ServiceCollectionExtensions
                 options.UseLocalServer();
                 options.UseAspNetCore();
             });
+
+        services.AddSingleton<OpenIddictScopeCatalog>();
+        services.AddSingleton<IConfigureOptions<OpenIddictServerOptions>,
+            DatabaseOpenIddictScopeOptions>();
 
         return services;
     }
@@ -128,7 +135,7 @@ public static class ServiceCollectionExtensions
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
-            options.AddSecurityDefinition("OpenIddict", new OpenApiSecurityScheme
+            var securityScheme = new OpenApiSecurityScheme
             {
                 Type = SecuritySchemeType.OAuth2,
                 Description = "Sign in with the OpenIddict authorization code flow.",
@@ -146,7 +153,8 @@ public static class ServiceCollectionExtensions
                         }
                     }
                 }
-            });
+            };
+            options.AddSecurityDefinition("OpenIddict", securityScheme);
 
             options.AddSecurityRequirement(document =>
                 new OpenApiSecurityRequirement

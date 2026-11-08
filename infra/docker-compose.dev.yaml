@@ -1,6 +1,7 @@
 include:
   - postgres/docker-compose.postgres.yaml
   - auth/docker-compose.auth.yaml
+  - api-gateway/docker-compose.gateway.yaml
 
 networks:
   smurftracker_network:

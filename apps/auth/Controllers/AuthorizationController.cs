@@ -10,12 +10,14 @@ using OpenIddict.Server.AspNetCore;
 public class AuthorizationController : Controller
 {
     private readonly IOpenIddictApplicationManager _applicationManager;
+    private readonly IOpenIddictScopeManager _scopeManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
 
-    public AuthorizationController(IOpenIddictApplicationManager applicationManager, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
+    public AuthorizationController(IOpenIddictApplicationManager applicationManager, IOpenIddictScopeManager scopeManager, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
     {
         _applicationManager = applicationManager;
+        _scopeManager = scopeManager;
         _userManager = userManager;
         _signInManager = signInManager;
     }
@@ -41,8 +43,9 @@ public class AuthorizationController : Controller
 
             var principal = new ClaimsPrincipal(identity);
 
-            principal.SetScopes(request.GetScopes());
-            principal.SetResources("resource_server");
+            var scopes = request.GetScopes();
+            principal.SetScopes(scopes);
+            principal.SetResources(await GetResourcesAsync(scopes));
 
             return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
@@ -145,7 +148,9 @@ public class AuthorizationController : Controller
             await _userManager.GetUserIdAsync(user));
 
         // Set the scopes requested by the client.
-        principal.SetScopes(request.GetScopes());
+        var scopes = request.GetScopes();
+        principal.SetScopes(scopes);
+        principal.SetResources(await GetResourcesAsync(scopes));
 
         // Decide which claims should be included in which tokens.
         principal.SetDestinations(claim => claim.Type switch
@@ -182,6 +187,26 @@ public class AuthorizationController : Controller
         return SignIn(
             principal,
             OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    private async Task<IReadOnlyCollection<string>> GetResourcesAsync(
+        IEnumerable<string> scopes)
+    {
+        var resources = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var scope in scopes)
+        {
+            var scopeDescriptor = await _scopeManager.FindByNameAsync(scope);
+            if (scopeDescriptor is null)
+            {
+                continue;
+            }
+
+            var scopeResources =
+                await _scopeManager.GetResourcesAsync(scopeDescriptor);
+            resources.UnionWith(scopeResources);
+        }
+
+        return resources;
     }
 
     [HttpGet("~/connect/logout")]
