@@ -41,6 +41,9 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/health", () => Results.Ok("API Gateway is healthy."))
+    .AllowAnonymous();
+
 app.MapReverseProxy().RequireAuthorization();
 
 app.Run();
