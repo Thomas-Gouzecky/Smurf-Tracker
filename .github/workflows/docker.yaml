@@ -15,17 +15,17 @@ jobs:
         include:
           - image: auth-service
             context: apps/auth
-            dockerfile: Dockerfile.app
+            dockerfile: apps/auth/Dockerfile.app
             version_type: dotnet
             version_file: apps/auth/auth.csproj
           - image: auth-migrations
             context: apps/auth
-            dockerfile: Dockerfile.migrations
+            dockerfile: apps/auth/Dockerfile.migrations
             version_type: dotnet
             version_file: apps/auth/auth.csproj
           - image: api-gateway
             context: apps/api-gateway
-            dockerfile: Dockerfile
+            dockerfile: apps/api-gateway/Dockerfile
             version_type: dotnet
             version_file: apps/api-gateway/ApiGateway.csproj
 
