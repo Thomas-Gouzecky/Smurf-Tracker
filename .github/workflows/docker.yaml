@@ -14,15 +14,18 @@ jobs:
       matrix:
         include:
           - image: auth-service
-            dockerfile: apps/auth/Dockerfile.app
+            context: apps/auth
+            dockerfile: Dockerfile.app
             version_type: dotnet
             version_file: apps/auth/auth.csproj
           - image: auth-migrations
-            dockerfile: apps/auth/Dockerfile.migrations
+            context: apps/auth
+            dockerfile: Dockerfile.migrations
             version_type: dotnet
             version_file: apps/auth/auth.csproj
           - image: api-gateway
-            dockerfile: apps/api-gateway/Dockerfile
+            context: apps/api-gateway
+            dockerfile: Dockerfile
             version_type: dotnet
             version_file: apps/api-gateway/ApiGateway.csproj
 
@@ -72,7 +75,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
