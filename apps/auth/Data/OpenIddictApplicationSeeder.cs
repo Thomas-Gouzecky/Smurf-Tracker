@@ -19,7 +19,7 @@ public static class OpenIddictApplicationSeeder
         var manager = scope.ServiceProvider
             .GetRequiredService<IOpenIddictApplicationManager>();
 
-        var scopes = OpenIddictScopes.GetRequired(app.Configuration);
+        var scopes = OpenIddictScopes.GetRequiredDefinitions(app.Configuration);
         await UpsertAsync(manager, CreateServiceWorkerDescriptor(scopes));
         await UpsertAsync(manager, CreateSwaggerDescriptor(scopes));
         var scopeManager = scope.ServiceProvider
@@ -79,7 +79,7 @@ public static class OpenIddictApplicationSeeder
         OpenIddictApplicationDescriptor descriptor,
         OpenIddictScopesOptions scopes)
     {
-        foreach (var scope in scopes.Scopes)
+        foreach (var scope in scopes.Definitions)
         {
             descriptor.Permissions.Add(
                 Permissions.Prefixes.Scope + scope.Name);

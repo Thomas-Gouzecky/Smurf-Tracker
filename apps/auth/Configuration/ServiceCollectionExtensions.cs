@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using OpenIddict.Validation.AspNetCore;
+using OpenIddict.Server;
+using Microsoft.Extensions.Options;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 public static class ServiceCollectionExtensions
@@ -28,8 +30,6 @@ public static class ServiceCollectionExtensions
         IWebHostEnvironment environment,
         IConfiguration configuration)
     {
-        var scopes = OpenIddictScopes.GetRequired(configuration);
-
         services.AddOpenIddict()
             .AddCore(options =>
             {
@@ -38,8 +38,6 @@ public static class ServiceCollectionExtensions
             })
             .AddServer(options =>
             {
-                options.RegisterScopes(
-                    scopes.Scopes.Select(scope => scope.Name).ToArray());
                 options.SetTokenEndpointUris("/connect/token");
                 options.SetAuthorizationEndpointUris("/connect/authorize");
                 options.SetEndSessionEndpointUris("/connect/logout");
@@ -69,6 +67,10 @@ public static class ServiceCollectionExtensions
                 options.UseLocalServer();
                 options.UseAspNetCore();
             });
+
+        services.AddSingleton<OpenIddictScopeCatalog>();
+        services.AddSingleton<IConfigureOptions<OpenIddictServerOptions>,
+            DatabaseOpenIddictScopeOptions>();
 
         return services;
     }
@@ -133,7 +135,6 @@ public static class ServiceCollectionExtensions
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {
-            var scopes = OpenIddictScopes.GetRequired(configuration);
             var securityScheme = new OpenApiSecurityScheme
             {
                 Type = SecuritySchemeType.OAuth2,
@@ -153,11 +154,6 @@ public static class ServiceCollectionExtensions
                     }
                 }
             };
-            foreach (var scope in scopes.Scopes)
-            {
-                securityScheme.Flows.AuthorizationCode!.Scopes[scope.Name] =
-                    scope.DisplayName;
-            }
             options.AddSecurityDefinition("OpenIddict", securityScheme);
 
             options.AddSecurityRequirement(document =>

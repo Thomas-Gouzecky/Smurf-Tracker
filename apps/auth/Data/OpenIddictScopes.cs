@@ -2,7 +2,7 @@ using OpenIddict.Abstractions;
 
 public sealed class OpenIddictScopesOptions
 {
-    public List<OpenIddictScopeOptions> Scopes { get; set; } = [];
+    public List<OpenIddictScopeOptions> Definitions { get; set; } = [];
 }
 
 public sealed class OpenIddictScopeOptions
@@ -14,21 +14,22 @@ public sealed class OpenIddictScopeOptions
 
 public static class OpenIddictScopes
 {
-    public static OpenIddictScopesOptions GetRequired(IConfiguration configuration)
+    public static OpenIddictScopesOptions GetRequiredDefinitions(
+        IConfiguration configuration)
     {
         var options = configuration
             .GetRequiredSection("OpenIddict")
             .Get<OpenIddictScopesOptions>()
             ?? throw new InvalidOperationException(
-                "The OpenIddict configuration is invalid.");
+                "The OpenIddict scope definitions configuration is invalid.");
 
-        if (options.Scopes.Count == 0)
+        if (options.Definitions.Count == 0)
         {
             throw new InvalidOperationException(
-                "At least one OpenIddict scope must be configured.");
+                "At least one OpenIddict scope definition must be configured.");
         }
 
-        if (options.Scopes.Any(scope =>
+        if (options.Definitions.Any(scope =>
             string.IsNullOrWhiteSpace(scope.Name) ||
             string.IsNullOrWhiteSpace(scope.DisplayName) ||
             scope.Resources.Count == 0 ||
@@ -38,7 +39,7 @@ public static class OpenIddictScopes
                 "Every OpenIddict scope must have a name, display name, and resource.");
         }
 
-        if (options.Scopes
+        if (options.Definitions
             .GroupBy(scope => scope.Name, StringComparer.OrdinalIgnoreCase)
             .Any(group => group.Count() > 1))
         {
@@ -52,7 +53,7 @@ public static class OpenIddictScopes
     public static IEnumerable<OpenIddictScopeDescriptor> GetDescriptors(
         OpenIddictScopesOptions options)
     {
-        return options.Scopes.Select(scope =>
+        return options.Definitions.Select(scope =>
         {
             var descriptor = new OpenIddictScopeDescriptor
             {

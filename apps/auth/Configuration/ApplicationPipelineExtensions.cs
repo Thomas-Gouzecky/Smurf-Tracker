@@ -1,8 +1,14 @@
+using Microsoft.Extensions.Options;
+using OpenIddict.Server;
+
 public static class ApplicationPipelineExtensions
 {
     public static WebApplication UseApplicationPipeline(
         this WebApplication app)
     {
+        _ = app.Services.GetRequiredService<IOptions<OpenIddictServerOptions>>()
+            .Value;
+
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
@@ -14,9 +20,9 @@ public static class ApplicationPipelineExtensions
                 options.OAuthClientId("swagger-ui");
                 options.OAuthUsePkce();
                 var oauthScopes = new[] { "openid" }
-                    .Concat(OpenIddictScopes.GetRequired(app.Configuration)
-                        .Scopes
-                        .Select(scope => scope.Name))
+                    .Concat(app.Services
+                        .GetRequiredService<OpenIddictScopeCatalog>()
+                        .Names)
                     .ToArray();
                 options.OAuthScopes(oauthScopes);
             });
