@@ -23,7 +23,7 @@ jobs:
             dockerfile: apps/auth/Dockerfile.migrations
             version_type: dotnet
             version_file: apps/auth/auth.csproj
-          - image: api-gateway
+          - image: smurftracker-api-gateway
             context: apps/api-gateway
             dockerfile: apps/api-gateway/Dockerfile
             version_type: dotnet
