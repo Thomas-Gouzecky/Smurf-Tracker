@@ -19,14 +19,16 @@ public static class OpenIddictApplicationSeeder
         var manager = scope.ServiceProvider
             .GetRequiredService<IOpenIddictApplicationManager>();
 
-        await UpsertAsync(manager, CreateServiceWorkerDescriptor());
-        await UpsertAsync(manager, CreateSwaggerDescriptor());
+        var scopes = OpenIddictScopes.GetRequired(app.Configuration);
+        await UpsertAsync(manager, CreateServiceWorkerDescriptor(scopes));
+        await UpsertAsync(manager, CreateSwaggerDescriptor(scopes));
         var scopeManager = scope.ServiceProvider
             .GetRequiredService<IOpenIddictScopeManager>();
-        await RegisterScopesAsync(scopeManager);
+        await RegisterScopesAsync(scopeManager, scopes);
     }
 
-    private static OpenIddictApplicationDescriptor CreateServiceWorkerDescriptor()
+    private static OpenIddictApplicationDescriptor CreateServiceWorkerDescriptor(
+        OpenIddictScopesOptions scopes)
     {
         var descriptor = new OpenIddictApplicationDescriptor
         {
@@ -38,12 +40,13 @@ public static class OpenIddictApplicationSeeder
         descriptor.RedirectUris.Add(new Uri("http://localhost:5118/callback"));
         AddAuthorizationCodePermissions(descriptor);
         descriptor.Permissions.Add(Permissions.Scopes.Profile);
-        AddSmurfTrackerScopePermissions(descriptor);
+        AddScopePermissions(descriptor, scopes);
 
         return descriptor;
     }
 
-    private static OpenIddictApplicationDescriptor CreateSwaggerDescriptor()
+    private static OpenIddictApplicationDescriptor CreateSwaggerDescriptor(
+        OpenIddictScopesOptions scopes)
     {
         var descriptor = new OpenIddictApplicationDescriptor
         {
@@ -57,7 +60,7 @@ public static class OpenIddictApplicationSeeder
         descriptor.PostLogoutRedirectUris.Add(
             new Uri("https://localhost:5260/swagger/"));
         AddAuthorizationCodePermissions(descriptor);
-        AddSmurfTrackerScopePermissions(descriptor);
+        AddScopePermissions(descriptor, scopes);
 
         return descriptor;
     }
@@ -72,13 +75,15 @@ public static class OpenIddictApplicationSeeder
         descriptor.Permissions.Add(Permissions.Endpoints.EndSession);
     }
 
-    private static void AddSmurfTrackerScopePermissions(
-        OpenIddictApplicationDescriptor descriptor)
+    private static void AddScopePermissions(
+        OpenIddictApplicationDescriptor descriptor,
+        OpenIddictScopesOptions scopes)
     {
-        descriptor.Permissions.Add(
-            Permissions.Prefixes.Scope + OpenIddictScopes.Read);
-        descriptor.Permissions.Add(
-            Permissions.Prefixes.Scope + OpenIddictScopes.Write);
+        foreach (var scope in scopes.Scopes)
+        {
+            descriptor.Permissions.Add(
+                Permissions.Prefixes.Scope + scope.Name);
+        }
     }
 
     private static async Task UpsertAsync(
@@ -97,9 +102,10 @@ public static class OpenIddictApplicationSeeder
     }
 
     private static async Task RegisterScopesAsync(
-        IOpenIddictScopeManager manager)
+        IOpenIddictScopeManager manager,
+        OpenIddictScopesOptions options)
     {
-        var descriptors = OpenIddictScopes.GetScopes();
+        var descriptors = OpenIddictScopes.GetDescriptors(options);
         foreach (var descriptor in descriptors)
         {
             var scope = await manager.FindByNameAsync(descriptor.Name!);

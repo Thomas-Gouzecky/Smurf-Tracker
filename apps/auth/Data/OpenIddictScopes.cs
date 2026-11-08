@@ -1,40 +1,70 @@
 using OpenIddict.Abstractions;
 
+public sealed class OpenIddictScopesOptions
+{
+    public List<OpenIddictScopeOptions> Scopes { get; set; } = [];
+}
+
+public sealed class OpenIddictScopeOptions
+{
+    public string Name { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public List<string> Resources { get; set; } = [];
+}
+
 public static class OpenIddictScopes
 {
-    public const string Read = "smurftracker-read";
-    public const string Write = "smurftracker-write";
-    public const string Resource = "smurftracker-api";
-
-    public static IEnumerable<OpenIddictScopeDescriptor> GetScopes()
+    public static OpenIddictScopesOptions GetRequired(IConfiguration configuration)
     {
-        yield return CreateSmurfTrackerReadScope();
-        yield return CreateSmurfTrackerWriteScope();
-    }
+        var options = configuration
+            .GetRequiredSection("OpenIddict")
+            .Get<OpenIddictScopesOptions>()
+            ?? throw new InvalidOperationException(
+                "The OpenIddict configuration is invalid.");
 
-    private static OpenIddictScopeDescriptor CreateSmurfTrackerReadScope()
-    {
-        return new OpenIddictScopeDescriptor
+        if (options.Scopes.Count == 0)
         {
-            Name = Read,
-            DisplayName = "Read SmurfTracker data",
-            Resources =
-        {
-            Resource
+            throw new InvalidOperationException(
+                "At least one OpenIddict scope must be configured.");
         }
-        };
+
+        if (options.Scopes.Any(scope =>
+            string.IsNullOrWhiteSpace(scope.Name) ||
+            string.IsNullOrWhiteSpace(scope.DisplayName) ||
+            scope.Resources.Count == 0 ||
+            scope.Resources.Any(string.IsNullOrWhiteSpace)))
+        {
+            throw new InvalidOperationException(
+                "Every OpenIddict scope must have a name, display name, and resource.");
+        }
+
+        if (options.Scopes
+            .GroupBy(scope => scope.Name, StringComparer.OrdinalIgnoreCase)
+            .Any(group => group.Count() > 1))
+        {
+            throw new InvalidOperationException(
+                "OpenIddict scope names must be unique.");
+        }
+
+        return options;
     }
 
-    private static OpenIddictScopeDescriptor CreateSmurfTrackerWriteScope()
+    public static IEnumerable<OpenIddictScopeDescriptor> GetDescriptors(
+        OpenIddictScopesOptions options)
     {
-        return new OpenIddictScopeDescriptor
+        return options.Scopes.Select(scope =>
         {
-            Name = Write,
-            DisplayName = "Write SmurfTracker data",
-            Resources =
-        {
-            Resource
-        }
-        };
+            var descriptor = new OpenIddictScopeDescriptor
+            {
+                Name = scope.Name,
+                DisplayName = scope.DisplayName
+            };
+            foreach (var resource in scope.Resources)
+            {
+                descriptor.Resources.Add(resource);
+            }
+
+            return descriptor;
+        });
     }
-} 
+}

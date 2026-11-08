@@ -4,7 +4,9 @@ var builder = WebApplication.CreateBuilder(args);
 var isMigration = args.Contains("--migrate", StringComparer.OrdinalIgnoreCase);
 
 builder.Services.AddApplicationDatabase(builder.Configuration);
-builder.Services.AddOpenIddictServices(builder.Environment);
+builder.Services.AddOpenIddictServices(
+    builder.Environment,
+    builder.Configuration);
 
 if (!isMigration)
 {

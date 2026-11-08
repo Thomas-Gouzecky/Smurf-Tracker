@@ -10,7 +10,10 @@ builder.Services.AddOpenIddict()
             builder.Configuration["Authentication:Authority"] ??
                 throw new InvalidOperationException("The authentication authority is not configured.")
         );
-        options.AddAudiences("smurftracker-api");
+        options.AddAudiences(
+            builder.Configuration["Authentication:Audience"] ??
+                throw new InvalidOperationException(
+                    "The authentication audience is not configured."));
         options.UseSystemNetHttp();
         options.UseAspNetCore();
     });

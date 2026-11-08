@@ -13,10 +13,12 @@ public static class ApplicationPipelineExtensions
                     "Auth API v1");
                 options.OAuthClientId("swagger-ui");
                 options.OAuthUsePkce();
-                options.OAuthScopes(
-                    "openid",
-                    OpenIddictScopes.Read,
-                    OpenIddictScopes.Write);
+                var oauthScopes = new[] { "openid" }
+                    .Concat(OpenIddictScopes.GetRequired(app.Configuration)
+                        .Scopes
+                        .Select(scope => scope.Name))
+                    .ToArray();
+                options.OAuthScopes(oauthScopes);
             });
         }
 
