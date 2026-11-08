@@ -15,7 +15,7 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - '${USERPROFILE}/.aspnet/https:/https:ro'
+      - './secrets/auth-service.pfx:/https/auth-service.pfx:ro'
     networks:
       - smurftracker_network
 

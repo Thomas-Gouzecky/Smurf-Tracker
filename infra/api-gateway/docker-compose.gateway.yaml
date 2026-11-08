@@ -1,0 +1,19 @@
+services:
+  api-gateway:
+    image: tomcheese/smurftracker-api-gateway:latest
+    container_name: api-gateway
+    ports:
+      - '8008:8008'
+    env_file:
+      - .env
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -kf http://localhost:8008/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smurftracker_network
+
+networks:
+  smurftracker_network:
+    driver: bridge
