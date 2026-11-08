@@ -17,7 +17,7 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-COPY secrets/dev-ca.crt /usr/local/share/ca-certificates/dev-ca.crt
+COPY dev-ca.crt /usr/local/share/ca-certificates/dev-ca.crt
 
 RUN update-ca-certificates
 
