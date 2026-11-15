@@ -43,7 +43,7 @@ func (s *GinServer) setupRoutes() {
 }
 
 func (s *GinServer) Readiness(c *gin.Context) {
-	ready := true // Replace with actual readiness check logic
+	ready := s.emailService.IsReady()
 	if !ready {
 		c.JSON(http.StatusServiceUnavailable, models.Health{Status: models.FailureStatus})
 		return

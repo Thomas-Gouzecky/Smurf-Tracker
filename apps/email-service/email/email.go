@@ -31,3 +31,7 @@ func (s *EmailService) SendEmail(ctx context.Context, email models.Email) error 
 
     return s.provider.SendEmail(ctx, email)
 }
+
+func (s *EmailService) IsReady() bool {
+	return s.provider != nil && s.renderer != nil
+}
