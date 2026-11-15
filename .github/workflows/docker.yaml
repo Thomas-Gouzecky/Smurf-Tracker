@@ -28,6 +28,11 @@ jobs:
             dockerfile: apps/api-gateway/Dockerfile
             version_type: dotnet
             version_file: apps/api-gateway/ApiGateway.csproj
+          - image: email-service
+            context: apps/email-service
+            dockerfile: apps/email-service/Dockerfile
+            version_type: misc
+            version_file: apps/email-service/version.toml
 
     steps:
       - name: Checkout repository
@@ -66,6 +71,17 @@ jobs:
           echo "version=$version" >> $env:GITHUB_OUTPUT
           echo "version=$version" >> $env:GITHUB_ENV
 
+      - name: Get Misc Version
+        id: get_misc_version
+        if: matrix.version_type == 'misc'
+        shell: bash
+        run: |
+          version=$(cat ${{ matrix.version_file }} | grep -E '^version\s*=' | sed -E 's/^version\s*=\s*"([^"]+)".*/\1/')
+
+          echo "Version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_ENV"
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -79,5 +95,5 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/${{ matrix.image }}:${{ steps.get_dotnet_version.outputs.version || steps.get_python_version.outputs.version }}
+            ${{ secrets.DOCKER_USERNAME }}/${{ matrix.image }}:${{ steps.get_dotnet_version.outputs.version || steps.get_python_version.outputs.version || steps.get_misc_version.outputs.version }}
             ${{ secrets.DOCKER_USERNAME }}/${{ matrix.image }}:latest
