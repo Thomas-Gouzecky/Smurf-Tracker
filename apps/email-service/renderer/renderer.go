@@ -2,31 +2,35 @@ package renderer
 
 import (
 	"bytes"
+	"embed"
 	"html/template"
 )
 
 type Renderer struct {
-    templates *template.Template
+	templates *template.Template
 }
 
-func NewRenderer() (*Renderer, error) {
-    templates, err := template.ParseGlob("./templates/*.html")
-    if err != nil {
-        return nil, err
-    }
+//go:embed templates/*.html
+var templateFiles embed.FS
 
-    return &Renderer{
-        templates: templates,
-    }, nil
+func NewRenderer() (*Renderer, error) {
+	templates, err := template.ParseFS(templateFiles, "templates/*.html")
+	if err != nil {
+		return nil, err
+	}
+
+	return &Renderer{
+		templates: templates,
+	}, nil
 }
 
 func (r *Renderer) Render(name string, data any) (string, error) {
-    var buf bytes.Buffer
+	var buf bytes.Buffer
 
-    err := r.templates.ExecuteTemplate(&buf, name, data)
-    if err != nil {
-        return "", err
-    }
+	err := r.templates.ExecuteTemplate(&buf, name, data)
+	if err != nil {
+		return "", err
+	}
 
-    return buf.String(), nil
+	return buf.String(), nil
 }

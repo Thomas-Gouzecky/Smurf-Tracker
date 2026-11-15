@@ -25,7 +25,6 @@ func (p *fakeProvider) SendEmail(ctx context.Context, email models.Email) error 
 
 func newEmailService(t *testing.T, provider *fakeProvider) *email.EmailService {
 	t.Helper()
-	t.Chdir("..")
 
 	emailRenderer, err := renderer.NewRenderer()
 	if err != nil {
