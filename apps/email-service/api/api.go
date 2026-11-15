@@ -12,6 +12,8 @@ type Server interface {
 	Start() error
 	Readiness(c *gin.Context)
 	Liveness(c *gin.Context)
+
+	SendEmail(c *gin.Context)
 }
 
 type GinServer struct {
