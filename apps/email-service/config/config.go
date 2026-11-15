@@ -4,12 +4,12 @@ import "os"
 
 type Config struct {
 	ResendAPIKey string
-	Port         string
+	ServerPort   string
 }
 
 func LoadEnv() *Config {
 	return &Config{
 		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
-		Port:         os.Getenv("PORT"),
+		ServerPort:   os.Getenv("SERVER_PORT"),
 	}
 }
