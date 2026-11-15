@@ -5,6 +5,8 @@ import (
 
 	"github.com/Thomas-Gouzecky/Smurf-Tracker/api"
 	"github.com/Thomas-Gouzecky/Smurf-Tracker/config"
+	"github.com/Thomas-Gouzecky/Smurf-Tracker/email"
+	"github.com/Thomas-Gouzecky/Smurf-Tracker/provider"
 	"github.com/joho/godotenv"
 )
 
@@ -15,7 +17,10 @@ func main() {
 	
 	cfg := config.LoadEnv()
 
-	srv := api.NewGinServer(cfg.ServerPort)
+	emailProvider := provider.NewResendProvider(cfg.ResendAPIKey)
+	emailService := email.NewEmailService(emailProvider)
+
+	srv := api.NewGinServer(cfg.ServerPort, emailService)
 	if err := srv.Start(); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
