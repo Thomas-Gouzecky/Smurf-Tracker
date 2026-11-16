@@ -30,11 +30,27 @@ else
     private bool _isSuccessful;
     private string _message = "The verification link is invalid.";
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
         if (string.IsNullOrWhiteSpace(UserId) || string.IsNullOrWhiteSpace(Token))
         {
             _isVerifying = false;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !_isVerifying)
+        {
+            return;
+        }
+
+        var userId = UserId;
+        var token = Token;
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(token))
+        {
             return;
         }
 
@@ -43,7 +59,7 @@ else
             var response = await Js.InvokeAsync<ApiResponse>(
                 "authDevApi.call",
                 "POST",
-                $"/api/auth/verify-email?userId={Uri.EscapeDataString(UserId)}&token={Uri.EscapeDataString(Token)}",
+                $"/api/auth/verify-email?userId={Uri.EscapeDataString(userId)}&token={Uri.EscapeDataString(token)}",
                 null);
             _isSuccessful = response.StatusCode is >= 200 and < 300;
             if (!_isSuccessful)
@@ -58,6 +74,7 @@ else
         finally
         {
             _isVerifying = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
