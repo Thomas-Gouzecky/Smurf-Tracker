@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.Net;
 
 namespace auth_test.unit;
 
@@ -19,7 +20,7 @@ public class SecurityServiceTests
 
         var result = await service.ForgotPasswordAsync("missing@example.com");
 
-        Assert.False(result);
+        Assert.Equal(false, result);
         emailClient.Verify(client => client.SendEmailAsync(It.IsAny<SendEmailRequest>()), Times.Never);
     }
 
@@ -39,16 +40,16 @@ public class SecurityServiceTests
         emailClient
             .Setup(client => client.SendEmailAsync(It.IsAny<SendEmailRequest>()))
             .Callback<SendEmailRequest>(request => sentRequest = request)
-            .ReturnsAsync(true);
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
         var service = CreateService(userManager, emailClient);
 
         var result = await service.ForgotPasswordAsync(user.Email);
 
-        Assert.True(result);
+        Assert.Equal(HttpStatusCode.OK, Assert.IsType<HttpResponseMessage>(result).StatusCode);
         Assert.NotNull(sentRequest);
         Assert.Equal(user.Email, sentRequest!.To);
-        Assert.Equal("password_reset", sentRequest.template);
-        var resetUrl = GetPayloadValue<string>(sentRequest.data, "ResetUrl");
+        Assert.Equal("password_reset", sentRequest.Template);
+        var resetUrl = GetPayloadValue<string>(sentRequest.Data, "ResetLink");
         Assert.Equal(
             "https://yourapp.com/reset-password?userId=user-1&token=reset%20token",
             resetUrl);
@@ -68,12 +69,12 @@ public class SecurityServiceTests
         var emailClient = new Mock<IEmailServiceClient>();
         emailClient
             .Setup(client => client.SendEmailAsync(It.IsAny<SendEmailRequest>()))
-            .ReturnsAsync(false);
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.BadRequest));
         var service = CreateService(userManager, emailClient);
 
         var result = await service.ForgotPasswordAsync(user.Email);
 
-        Assert.False(result);
+        Assert.Equal(HttpStatusCode.BadRequest, Assert.IsType<HttpResponseMessage>(result).StatusCode);
     }
 
     [Fact]
@@ -189,7 +190,7 @@ public class SecurityServiceTests
     }
 
     [Fact]
-    public async Task ResendVerificationEmailAsync_WhenUserDoesNotExist_ReturnsFalse()
+    public async Task SendVerificationEmailAsync_WhenUserDoesNotExist_ReturnsUserNotFound()
     {
         var userManager = CreateUserManager();
         userManager
@@ -198,14 +199,14 @@ public class SecurityServiceTests
         var emailClient = new Mock<IEmailServiceClient>();
         var service = CreateService(userManager, emailClient);
 
-        var result = await service.ResendVerificationEmailAsync("missing-user");
+        var result = await service.SendVerificationEmailAsync("missing-user");
 
-        Assert.False(result);
+        Assert.False(result.Succeeded);
         emailClient.Verify(client => client.SendEmailAsync(It.IsAny<SendEmailRequest>()), Times.Never);
     }
 
     [Fact]
-    public async Task ResendVerificationEmailAsync_WhenEmailIsAlreadyConfirmed_ReturnsTrueWithoutSendingEmail()
+    public async Task SendVerificationEmailAsync_WhenEmailIsAlreadyConfirmed_ReturnsSuccessWithoutSendingEmail()
     {
         var user = new ApplicationUser { Id = "user-1", Email = "user@example.com", EmailConfirmed = true };
         var userManager = CreateUserManager();
@@ -215,9 +216,9 @@ public class SecurityServiceTests
         var emailClient = new Mock<IEmailServiceClient>();
         var service = CreateService(userManager, emailClient);
 
-        var result = await service.ResendVerificationEmailAsync(user.Id);
+        var result = await service.SendVerificationEmailAsync(user.Id);
 
-        Assert.True(result);
+        Assert.True(result.Succeeded);
         userManager.Verify(
             manager => manager.GenerateEmailConfirmationTokenAsync(It.IsAny<ApplicationUser>()),
             Times.Never);
@@ -225,7 +226,7 @@ public class SecurityServiceTests
     }
 
     [Fact]
-    public async Task ResendVerificationEmailAsync_WhenEmailIsNotConfirmed_SendsVerificationEmail()
+    public async Task SendVerificationEmailAsync_WhenEmailIsNotConfirmed_SendsVerificationEmail()
     {
         var user = new ApplicationUser { Id = "user-1", Email = "user@example.com", EmailConfirmed = false };
         var userManager = CreateUserManager();
@@ -240,25 +241,98 @@ public class SecurityServiceTests
         emailClient
             .Setup(client => client.SendEmailAsync(It.IsAny<SendEmailRequest>()))
             .Callback<SendEmailRequest>(request => sentRequest = request)
-            .ReturnsAsync(true);
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
         var service = CreateService(userManager, emailClient);
 
-        var result = await service.ResendVerificationEmailAsync(user.Id);
+        var result = await service.SendVerificationEmailAsync(user.Id);
 
-        Assert.True(result);
+        Assert.True(result.Succeeded);
         Assert.NotNull(sentRequest);
         Assert.Equal(user.Email, sentRequest!.To);
-        Assert.Equal("email_verification", sentRequest.template);
-        var verificationUrl = GetPayloadValue<string>(sentRequest.data, "VerificationUrl");
+        Assert.Equal("account_verification", sentRequest.Template);
+        var verificationUrl = GetPayloadValue<string>(sentRequest.Data, "VerificationLink");
         Assert.Equal(
             "https://yourapp.com/verify-email?userId=user-1&token=verification%20token",
             verificationUrl);
     }
 
+    [Fact]
+    public async Task SendVerificationEmailAsync_WhenEmailServiceFails_ReturnsEmailSendFailed()
+    {
+        var user = new ApplicationUser
+        {
+            Id = "user-1",
+            Email = "user@example.com",
+            UserName = "user"
+        };
+        var userManager = CreateUserManager();
+        userManager
+            .Setup(manager => manager.FindByIdAsync(user.Id))
+            .ReturnsAsync(user);
+        userManager
+            .Setup(manager => manager.GenerateEmailConfirmationTokenAsync(user))
+            .ReturnsAsync("verification token");
+        var emailClient = new Mock<IEmailServiceClient>();
+        emailClient
+            .Setup(client => client.SendEmailAsync(It.IsAny<SendEmailRequest>()))
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.BadGateway));
+        var service = CreateService(userManager, emailClient);
+
+        var result = await service.SendVerificationEmailAsync(user.Id);
+
+        Assert.False(result.Succeeded);
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("EmailSendFailed", error.Code);
+    }
+
+    [Fact]
+    public async Task SendVerificationEmailAsync_EncodesTokenAndHandlesBaseUrlWithoutTrailingSlash()
+    {
+        var user = new ApplicationUser
+        {
+            Id = "user-1",
+            Email = "user@example.com",
+            UserName = "user"
+        };
+        var userManager = CreateUserManager();
+        userManager
+            .Setup(manager => manager.FindByIdAsync(user.Id))
+            .ReturnsAsync(user);
+        userManager
+            .Setup(manager => manager.GenerateEmailConfirmationTokenAsync(user))
+            .ReturnsAsync("token+with/slash==");
+        var emailClient = new Mock<IEmailServiceClient>();
+        SendEmailRequest? sentRequest = null;
+        emailClient
+            .Setup(client => client.SendEmailAsync(It.IsAny<SendEmailRequest>()))
+            .Callback<SendEmailRequest>(request => sentRequest = request)
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK));
+        var service = new SecurityService(
+            userManager.Object,
+            emailClient.Object,
+            Options.Create(new ApplicationOptions
+            {
+                BaseUrl = "https://yourapp.com"
+            }));
+
+        var result = await service.SendVerificationEmailAsync(user.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(
+            "https://yourapp.com/verify-email?userId=user-1&token=token%2Bwith%2Fslash%3D%3D",
+            GetPayloadValue<string>(sentRequest!.Data, "VerificationLink"));
+    }
+
     private static SecurityService CreateService(
         Mock<UserManager<ApplicationUser>> userManager,
         Mock<IEmailServiceClient> emailClient) =>
-        new(userManager.Object, emailClient.Object);
+        new(
+            userManager.Object,
+            emailClient.Object,
+            Options.Create(new ApplicationOptions
+            {
+                BaseUrl = "https://yourapp.com/"
+            }));
 
     private static Mock<UserManager<ApplicationUser>> CreateUserManager() =>
         new(
