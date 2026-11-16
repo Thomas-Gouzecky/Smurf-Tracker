@@ -1,0 +1,28 @@
+{
+  "name": "email-service",
+  "sourceRoot": "apps/email-service",
+  "projectType": "application",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run main.go",
+        "cwd": "apps/email-service"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go build -o email-service main.go",
+        "cwd": "apps/email-service"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go test ./...",
+        "cwd": "apps/email-service"
+      }
+    }
+  }
+}
