@@ -1,12 +1,16 @@
 public sealed class EmailServiceClient : IEmailServiceClient
 {
-    public EmailServiceClient()
+    private readonly HttpClient _emailServiceHttpClient;
+
+    public EmailServiceClient(IHttpClientFactory httpClientFactory)
     {
+        _emailServiceHttpClient = httpClientFactory.CreateClient("EmailService");
     }
 
-    public async Task<bool> SendEmailAsync(SendEmailRequest request)
+    public async Task<object> SendEmailAsync(SendEmailRequest request)
     {
-        // Implement the logic to send an email using the external email service API.
-        return await Task.FromResult(true);
+        var response = await _emailServiceHttpClient.PostAsJsonAsync("/email/send", request);
+        response.EnsureSuccessStatusCode();
+        return response;
     }
 }
