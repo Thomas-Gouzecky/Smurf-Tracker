@@ -9,7 +9,7 @@ public sealed class EmailServiceClient : IEmailServiceClient
 
     public async Task<HttpResponseMessage> SendEmailAsync(SendEmailRequest request)
     {
-        var response = await _emailServiceHttpClient.PostAsJsonAsync("/email/send", request);
+        var response = await _emailServiceHttpClient.PostAsJsonAsync("email/send", request);
         response.EnsureSuccessStatusCode();
         return response;
     }

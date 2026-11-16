@@ -30,7 +30,7 @@ public class SecurityService : ISecurityService
             return false;
         }
 
-        var resetLink = QueryHelpers.AddQueryString(_baseUrl + "/reset-password", new Dictionary<string, string?>
+        var resetLink = QueryHelpers.AddQueryString(_baseUrl + "reset-password", new Dictionary<string, string?>
         {
             { "userId", user.Id },
             { "token", await _userManager.GeneratePasswordResetTokenAsync(user) }
@@ -138,7 +138,7 @@ public class SecurityService : ISecurityService
             return IdentityResult.Success; // Email is already confirmed
         }
 
-        var verificationLink = QueryHelpers.AddQueryString(_baseUrl + "/verify-email", new Dictionary<string, string?>
+        var verificationLink = QueryHelpers.AddQueryString(_baseUrl + "verify-email", new Dictionary<string, string?>
         {
             { "userId", user.Id },
             { "token", await _userManager.GenerateEmailConfirmationTokenAsync(user) }
