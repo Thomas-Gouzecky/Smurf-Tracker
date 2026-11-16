@@ -1,0 +1,75 @@
+@page "/verify-email"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Navigation
+
+<PageTitle>Verify email</PageTitle>
+
+<h1>Verify your email</h1>
+
+@if (_isVerifying)
+{
+    <p>Verifying your email address...</p>
+}
+else if (_isSuccessful)
+{
+    <p role="status">Your email address has been verified successfully.</p>
+}
+else
+{
+    <p role="alert">@_message</p>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "userId")]
+    private string? UserId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "token")]
+    private string? Token { get; set; }
+
+    private bool _isVerifying = true;
+    private bool _isSuccessful;
+    private string _message = "The verification link is invalid.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(UserId) || string.IsNullOrWhiteSpace(Token))
+        {
+            _isVerifying = false;
+            return;
+        }
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthApi");
+            var requestUri = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString(
+                "api/auth/verify-email",
+                new Dictionary<string, string?>
+                {
+                    ["userId"] = UserId,
+                    ["token"] = Token
+                });
+
+            using var response = await client.PostAsync(requestUri, content: null);
+            _isSuccessful = response.IsSuccessStatusCode;
+            if (!_isSuccessful)
+            {
+                var error = await response.Content.ReadFromJsonAsync<VerificationError>();
+                _message = error?.Message ?? "The email verification link is invalid or expired.";
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _message = "The verification service could not be reached. Please try again later.";
+        }
+        finally
+        {
+            _isVerifying = false;
+        }
+    }
+
+    private sealed class VerificationError
+    {
+        public string? Message { get; set; }
+    }
+}

@@ -173,6 +173,15 @@ public static class ServiceCollectionExtensions
             client.BaseAddress = new Uri(emailServiceBaseUrl);
         });
 
+        var applicationBaseUrl = configuration["Application:BaseUrl"]
+            ?? throw new InvalidOperationException(
+                "Missing Application:BaseUrl configuration.");
+
+        services.AddHttpClient("AuthApi", client =>
+        {
+            client.BaseAddress = new Uri(applicationBaseUrl);
+        });
+
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ISecurityService, SecurityService>();
