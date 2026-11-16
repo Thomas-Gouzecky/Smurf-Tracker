@@ -1,4 +1,4 @@
 public interface IEmailServiceClient
 {
-    Task<object> SendEmailAsync(SendEmailRequest request);
+    Task<HttpResponseMessage> SendEmailAsync(SendEmailRequest request);
 }

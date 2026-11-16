@@ -68,19 +68,19 @@ public class SecurityController : ControllerBase
         return Ok(new { Message = "Email has been verified successfully." });
     }
 
-    [HttpPost("resend-verification-email")]
+    [HttpPost("send-verification-email")]
     [Authorize]
-    public async Task<IActionResult> ResendVerificationEmail()
+    public async Task<IActionResult> SendVerificationEmail()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (userId is null)
             return Unauthorized();
 
-        var result = await _securityService.ResendVerificationEmailAsync(userId);
-        if (!result)
-            return BadRequest(new { Message = "Failed to resend verification email." });
+        var result = await _securityService.SendVerificationEmailAsync(userId);
+        if (!result.Succeeded)
+            return BadRequest(result);
 
-        return Ok(new { Message = "Verification email has been resent successfully." });
+        return Ok(result);
     }
 }

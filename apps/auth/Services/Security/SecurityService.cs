@@ -17,7 +17,7 @@ public class SecurityService : ISecurityService
     /// </summary>
     /// <param name="email"></param>
     /// <returns></returns>
-    public async Task<bool> ForgotPasswordAsync(string email)
+    public async Task<object> ForgotPasswordAsync(string email)
     {
         var user = await _userManager.FindByEmailAsync(email);
         if (user is null)
@@ -25,7 +25,7 @@ public class SecurityService : ISecurityService
             return false;
         }
 
-        var resetUrl = QueryHelpers.AddQueryString("https://yourapp.com/reset-password", new Dictionary<string, string?>
+        var resetLink = QueryHelpers.AddQueryString("https://yourapp.com/reset-password", new Dictionary<string, string?>
         {
             { "userId", user.Id },
             { "token", await _userManager.GeneratePasswordResetTokenAsync(user) }
@@ -34,8 +34,10 @@ public class SecurityService : ISecurityService
         var result = await _emailServiceClient.SendEmailAsync(new SendEmailRequest
         {
             To = email,
-            template = "password_reset",
-            data = new { ResetUrl = resetUrl }
+            Template = "password_reset",
+            Subject = "Reset Your Password",
+            Body = "Please click the link below to reset your password.",
+            Data = new EmailData { Username = user.UserName!, ResetLink = resetLink }
         });
         return result;
     }
@@ -114,20 +116,24 @@ public class SecurityService : ISecurityService
     /// <param name="userId"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public async Task<bool> ResendVerificationEmailAsync(string userId)
+    public async Task<IdentityResult> SendVerificationEmailAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null)
         {
-            return false;
+            return IdentityResult.Failed(new IdentityError
+            {
+                Code = "UserNotFound",
+                Description = "User not found"
+            });
         }
 
         if (user.EmailConfirmed)
         {
-            return true; // Email is already confirmed
+            return IdentityResult.Success; // Email is already confirmed
         }
 
-        var verificationUrl = QueryHelpers.AddQueryString("https://yourapp.com/verify-email", new Dictionary<string, string?>
+        var verificationLink = QueryHelpers.AddQueryString("https://yourapp.com/verify-email", new Dictionary<string, string?>
         {
             { "userId", user.Id },
             { "token", await _userManager.GenerateEmailConfirmationTokenAsync(user) }
@@ -136,9 +142,11 @@ public class SecurityService : ISecurityService
         var result = await _emailServiceClient.SendEmailAsync(new SendEmailRequest
         {
             To = user.Email!,
-            template = "email_verification",
-            data = new { VerificationUrl = verificationUrl }
+            Template = "account_verification",
+            Subject = "Verify Your Email",
+            Body = "Please click the link below to verify your email address.",
+            Data = new EmailData { Username = user.UserName!, VerificationLink = verificationLink }
         });
-        return result;
+        return IdentityResult.Success;
     }
 }

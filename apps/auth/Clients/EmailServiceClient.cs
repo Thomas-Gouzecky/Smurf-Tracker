@@ -7,7 +7,7 @@ public sealed class EmailServiceClient : IEmailServiceClient
         _emailServiceHttpClient = httpClientFactory.CreateClient("EmailService");
     }
 
-    public async Task<object> SendEmailAsync(SendEmailRequest request)
+    public async Task<HttpResponseMessage> SendEmailAsync(SendEmailRequest request)
     {
         var response = await _emailServiceHttpClient.PostAsJsonAsync("/email/send", request);
         response.EnsureSuccessStatusCode();
