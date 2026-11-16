@@ -1,7 +1,6 @@
 services:
   auth-service:
-    # image: tomcheese/auth-service:0.3.0
-    image: auth-service:testing
+    image: tomcheese/auth-service:0.4.0
     container_name: auth-service
     ports:
       - '8070:8070'
