@@ -5,8 +5,8 @@ public static class LoginEndpoints
     public static IEndpointRouteBuilder MapLoginEndpoints(
         this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapPost("/login", SubmitLogin);
-        endpoints.MapPost("/register", SubmitRegister);
+        endpoints.MapPost("/login/submit", SubmitLogin);
+        endpoints.MapPost("/register/submit", SubmitRegister);
         endpoints.MapGet("/logout", Logout);
         endpoints.MapPost("/logout", Logout);
 
