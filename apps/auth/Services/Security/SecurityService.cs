@@ -1,15 +1,20 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
 
 public class SecurityService : ISecurityService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IEmailServiceClient _emailServiceClient;
+    private readonly string _baseUrl;
 
-    public SecurityService(UserManager<ApplicationUser> userManager, IEmailServiceClient emailServiceClient)
+    public SecurityService(UserManager<ApplicationUser> userManager, IEmailServiceClient emailServiceClient, IOptions<ApplicationOptions> options)
     {
         _userManager = userManager;
         _emailServiceClient = emailServiceClient;
+        _baseUrl = options.Value.BaseUrl
+            ?? throw new InvalidOperationException(
+                "Application:BaseUrl is not configured.");
     }
 
     /// <summary>
@@ -25,7 +30,7 @@ public class SecurityService : ISecurityService
             return false;
         }
 
-        var resetLink = QueryHelpers.AddQueryString("https://yourapp.com/reset-password", new Dictionary<string, string?>
+        var resetLink = QueryHelpers.AddQueryString(_baseUrl + "/reset-password", new Dictionary<string, string?>
         {
             { "userId", user.Id },
             { "token", await _userManager.GeneratePasswordResetTokenAsync(user) }
@@ -133,7 +138,7 @@ public class SecurityService : ISecurityService
             return IdentityResult.Success; // Email is already confirmed
         }
 
-        var verificationLink = QueryHelpers.AddQueryString("https://yourapp.com/verify-email", new Dictionary<string, string?>
+        var verificationLink = QueryHelpers.AddQueryString(_baseUrl + "/verify-email", new Dictionary<string, string?>
         {
             { "userId", user.Id },
             { "token", await _userManager.GenerateEmailConfirmationTokenAsync(user) }
@@ -147,6 +152,14 @@ public class SecurityService : ISecurityService
             Body = "Please click the link below to verify your email address.",
             Data = new EmailData { Username = user.UserName!, VerificationLink = verificationLink }
         });
+        if (!result.IsSuccessStatusCode)
+        {
+            return IdentityResult.Failed(new IdentityError
+            {
+                Code = "EmailSendFailed",
+                Description = "Failed to send verification email"
+            });
+        }
         return IdentityResult.Success;
     }
 }

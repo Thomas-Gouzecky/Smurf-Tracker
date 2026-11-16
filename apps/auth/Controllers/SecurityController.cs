@@ -54,14 +54,20 @@ public class SecurityController : ControllerBase
 
     [HttpPost("verify-email")]
     [Authorize]
-    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request)
+    public async Task<IActionResult> VerifyEmail([FromQuery] string userId, [FromQuery] string token)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
+            return BadRequest(new { Message = "Invalid request parameters." });
+
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userIdClaim != userId)
+            return Forbid();
 
         if (userId is null)
             return Unauthorized();
 
-        var result = await _securityService.VerifyEmailAsync(userId, request.VerificationCode);
+        var result = await _securityService.VerifyEmailAsync(userId, token);
         if (!result.Succeeded)
             return BadRequest(new { Message = "Failed to verify email.", Errors = result.Errors });
 

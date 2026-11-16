@@ -179,6 +179,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEmailServiceClient, EmailServiceClient>();
         services.AddScoped<ISessionService, SessionService>();
 
+        services.Configure<ApplicationOptions>(configuration.GetSection(ApplicationOptions.SectionName));
+
 
         return services;
     }
