@@ -164,11 +164,32 @@ public static class ServiceCollectionExtensions
                 });
         });
 
+        var emailServiceBaseUrl = configuration["EmailService:BaseUrl"]
+            ?? throw new InvalidOperationException(
+                "Missing EmailService:BaseUrl configuration.");
+
+        services.AddHttpClient("EmailService", client =>
+        {
+            client.BaseAddress = new Uri(emailServiceBaseUrl);
+        });
+
+        var applicationBaseUrl = configuration["Application:BaseUrl"]
+            ?? throw new InvalidOperationException(
+                "Missing Application:BaseUrl configuration.");
+
+        services.AddHttpClient("AuthApi", client =>
+        {
+            client.BaseAddress = new Uri(applicationBaseUrl);
+        });
+
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ISecurityService, SecurityService>();
         services.AddScoped<IEmailServiceClient, EmailServiceClient>();
         services.AddScoped<ISessionService, SessionService>();
+
+        services.Configure<ApplicationOptions>(configuration.GetSection(ApplicationOptions.SectionName));
+
 
         return services;
     }

@@ -1,0 +1,19 @@
+services:
+  email-service:
+    image: tomcheese/email-service:0.1.1
+    container_name: email-service
+    ports:
+      - '8080:8080'
+    env_file:
+      - .env
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -kf http://localhost:8080/readiness || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smurftracker_network
+
+networks:
+  smurftracker_network:
+    driver: bridge

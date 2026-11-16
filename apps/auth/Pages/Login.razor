@@ -1,0 +1,33 @@
+@page "/login"
+
+<PageTitle>Log in</PageTitle>
+
+<h1>Log in</h1>
+
+<form method="post" action="/login/submit">
+    <input type="hidden" name="returnUrl" value="/" />
+
+    <div>
+        <label for="userName">Username</label>
+        <input id="userName" name="userName" autocomplete="username" required />
+    </div>
+
+    <div>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password"
+               autocomplete="current-password" required />
+    </div>
+
+    <div>
+        <label>
+            <input name="rememberMe" type="checkbox" />
+            Remember me
+        </label>
+    </div>
+
+    <button type="submit">Log in</button>
+</form>
+
+<p>
+    <a href="/register">Register a new account</a>
+</p>

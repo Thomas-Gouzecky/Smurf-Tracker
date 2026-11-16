@@ -20,7 +20,7 @@ func NewEmailService(provider EmailProvider, renderer *renderer.Renderer) *Email
 }
 
 func (s *EmailService) SendEmail(ctx context.Context, email models.Email) error {
-	templateName := email.Type + ".html"
+	templateName := email.Template + ".html"
 
     html, err := s.renderer.Render(templateName, email.Data)
     if err != nil {

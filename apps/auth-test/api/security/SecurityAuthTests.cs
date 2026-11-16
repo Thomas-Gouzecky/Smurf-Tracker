@@ -142,14 +142,14 @@ public class SecurityAuthTests
     }
 
     [Fact]
-    public async Task VerifyEmail_WhenClaimIsMissing_ReturnsUnauthorizedWithoutCallingService()
+    public async Task VerifyEmail_WhenParametersAreMissing_ReturnsBadRequestWithoutCallingService()
     {
         var service = new Mock<ISecurityService>();
         var controller = CreateController(service, new ClaimsPrincipal(new ClaimsIdentity()));
 
-        var result = await controller.VerifyEmail(new VerifyEmailRequest { VerificationCode = "code" });
+        var result = await controller.VerifyEmail(string.Empty, string.Empty);
 
-        Assert.IsType<UnauthorizedResult>(result);
+        Assert.IsType<BadRequestObjectResult>(result);
         service.Verify(
             security => security.VerifyEmailAsync(It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
@@ -164,11 +164,29 @@ public class SecurityAuthTests
             .ReturnsAsync(IdentityResult.Success);
         var controller = CreateController(service, User("user-1"));
 
-        var result = await controller.VerifyEmail(new VerifyEmailRequest { VerificationCode = "code" });
+        var result = await controller.VerifyEmail("user-1", "code");
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Equal("Email has been verified successfully.", GetProperty<string>(ok.Value!, "Message"));
         service.Verify(security => security.VerifyEmailAsync("user-1", "code"), Times.Once);
+    }
+
+    [Fact]
+    public async Task VerifyEmail_ForwardsEncodedTokenWithoutAuthentication()
+    {
+        const string token = "token+with/slash==";
+        var service = new Mock<ISecurityService>();
+        service
+            .Setup(security => security.VerifyEmailAsync("user-1", token))
+            .ReturnsAsync(IdentityResult.Success);
+        var controller = CreateController(
+            service,
+            new ClaimsPrincipal(new ClaimsIdentity()));
+
+        var result = await controller.VerifyEmail("user-1", token);
+
+        Assert.IsType<OkObjectResult>(result);
+        service.Verify(security => security.VerifyEmailAsync("user-1", token), Times.Once);
     }
 
     [Fact]
@@ -180,61 +198,64 @@ public class SecurityAuthTests
             .ReturnsAsync(IdentityResult.Failed(new IdentityError { Code = "InvalidCode" }));
         var controller = CreateController(service, User("user-1"));
 
-        var result = await controller.VerifyEmail(new VerifyEmailRequest { VerificationCode = "code" });
+        var result = await controller.VerifyEmail("user-1", "code");
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         Assert.Equal("Failed to verify email.", GetProperty<string>(badRequest.Value!, "Message"));
     }
 
     [Fact]
-    public async Task ResendVerificationEmail_WhenClaimIsMissing_ReturnsUnauthorizedWithoutCallingService()
+    public async Task SendVerificationEmail_WhenClaimIsMissing_ReturnsUnauthorizedWithoutCallingService()
     {
         var service = new Mock<ISecurityService>();
         var controller = CreateController(service, new ClaimsPrincipal(new ClaimsIdentity()));
 
-        var result = await controller.ResendVerificationEmail();
+        var result = await controller.SendVerificationEmail();
 
         Assert.IsType<UnauthorizedResult>(result);
         service.Verify(
-            security => security.ResendVerificationEmailAsync(It.IsAny<string>()),
+            security => security.SendVerificationEmailAsync(It.IsAny<string>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task ResendVerificationEmail_WhenServiceSucceeds_ReturnsOkWithUserId()
+    public async Task SendVerificationEmail_WhenServiceSucceeds_ReturnsOk()
     {
         var service = new Mock<ISecurityService>();
         service
-            .Setup(security => security.ResendVerificationEmailAsync("user-1"))
-            .ReturnsAsync(true);
+            .Setup(security => security.SendVerificationEmailAsync("user-1"))
+            .ReturnsAsync(IdentityResult.Success);
         var controller = CreateController(service, User("user-1"));
 
-        var result = await controller.ResendVerificationEmail();
+        var result = await controller.SendVerificationEmail();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal("Verification email has been resent successfully.", GetProperty<string>(ok.Value!, "Message"));
-        service.Verify(security => security.ResendVerificationEmailAsync("user-1"), Times.Once);
+        Assert.True(((IdentityResult)ok.Value!).Succeeded);
+        service.Verify(security => security.SendVerificationEmailAsync("user-1"), Times.Once);
     }
 
     [Fact]
-    public async Task ResendVerificationEmail_WhenServiceFails_ReturnsBadRequest()
+    public async Task SendVerificationEmail_WhenServiceFails_ReturnsBadRequest()
     {
         var service = new Mock<ISecurityService>();
         service
-            .Setup(security => security.ResendVerificationEmailAsync("user-1"))
-            .ReturnsAsync(false);
+            .Setup(security => security.SendVerificationEmailAsync("user-1"))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError
+            {
+                Code = "EmailSendFailed"
+            }));
         var controller = CreateController(service, User("user-1"));
 
-        var result = await controller.ResendVerificationEmail();
+        var result = await controller.SendVerificationEmail();
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Failed to resend verification email.", GetProperty<string>(badRequest.Value!, "Message"));
+        Assert.False(((IdentityResult)badRequest.Value!).Succeeded);
     }
 
     [Fact]
     public void ProtectedEndpointsRequireAuthorization()
     {
-        foreach (var methodName in new[] { nameof(SecurityController.ChangePassword), nameof(SecurityController.VerifyEmail), nameof(SecurityController.ResendVerificationEmail) })
+        foreach (var methodName in new[] { nameof(SecurityController.ChangePassword), nameof(SecurityController.SendVerificationEmail) })
         {
             var method = typeof(SecurityController).GetMethod(methodName);
 
@@ -246,7 +267,7 @@ public class SecurityAuthTests
     [Fact]
     public void PublicEndpointsAllowAnonymous()
     {
-        foreach (var methodName in new[] { nameof(SecurityController.ForgotPassword), nameof(SecurityController.ResetPassword) })
+        foreach (var methodName in new[] { nameof(SecurityController.ForgotPassword), nameof(SecurityController.ResetPassword), nameof(SecurityController.VerifyEmail) })
         {
             var method = typeof(SecurityController).GetMethod(methodName);
 

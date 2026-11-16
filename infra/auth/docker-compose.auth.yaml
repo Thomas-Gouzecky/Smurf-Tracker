@@ -1,13 +1,13 @@
 services:
   auth-service:
-    image: tomcheese/auth-service:0.3.0
+    image: tomcheese/auth-service:0.4.0
     container_name: auth-service
     ports:
-      - '8080:8080'
+      - '8070:8070'
     env_file:
       - .env
     healthcheck:
-      test: ['CMD-SHELL', 'curl -kf https://localhost:8080/health || exit 1']
+      test: ['CMD-SHELL', 'curl -kf https://localhost:8070/health || exit 1']
       interval: 10s
       timeout: 5s
       retries: 5

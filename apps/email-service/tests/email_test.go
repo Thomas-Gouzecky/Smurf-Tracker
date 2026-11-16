@@ -39,7 +39,7 @@ func TestEmailServiceSendEmailDelegatesToProvider(t *testing.T) {
 	expectedEmail := models.Email{
 		To:      "recipient@example.com",
 		Subject: "Test email",
-		Type:    "account_verification",
+		Template:    "account_verification",
 		Data: models.EmailData{
 			Username:         "Test User",
 			VerificationLink: "https://example.com/verify",
@@ -59,7 +59,7 @@ func TestEmailServiceSendEmailDelegatesToProvider(t *testing.T) {
 	}
 	if provider.calledEmail.To != expectedEmail.To ||
 		provider.calledEmail.Subject != expectedEmail.Subject ||
-		provider.calledEmail.Type != expectedEmail.Type ||
+		provider.calledEmail.Template != expectedEmail.Template ||
 		provider.calledEmail.Data != expectedEmail.Data {
 		t.Errorf("SendEmail forwarded email %+v, want %+v", provider.calledEmail, expectedEmail)
 	}
@@ -76,7 +76,7 @@ func TestEmailServiceSendEmailReturnsProviderError(t *testing.T) {
 	service := newEmailService(t, provider)
 
 	err := service.SendEmail(context.Background(), models.Email{
-		Type: "account_verification",
+		Template: "account_verification",
 		Data: models.EmailData{
 			Username:         "Test User",
 			VerificationLink: "https://example.com/verify",

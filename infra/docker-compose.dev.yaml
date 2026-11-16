@@ -2,6 +2,7 @@ include:
   - postgres/docker-compose.postgres.yaml
   - auth/docker-compose.auth.yaml
   - api-gateway/docker-compose.gateway.yaml
+  - email-service/docker-compose.email.yaml
 
 networks:
   smurftracker_network:

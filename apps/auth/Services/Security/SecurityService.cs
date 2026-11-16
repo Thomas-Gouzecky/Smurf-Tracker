@@ -1,15 +1,20 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
 
 public class SecurityService : ISecurityService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IEmailServiceClient _emailServiceClient;
+    private readonly string _baseUrl;
 
-    public SecurityService(UserManager<ApplicationUser> userManager, IEmailServiceClient emailServiceClient)
+    public SecurityService(UserManager<ApplicationUser> userManager, IEmailServiceClient emailServiceClient, IOptions<ApplicationOptions> options)
     {
         _userManager = userManager;
         _emailServiceClient = emailServiceClient;
+        _baseUrl = options.Value.BaseUrl
+            ?? throw new InvalidOperationException(
+                "Application:BaseUrl is not configured.");
     }
 
     /// <summary>
@@ -17,7 +22,7 @@ public class SecurityService : ISecurityService
     /// </summary>
     /// <param name="email"></param>
     /// <returns></returns>
-    public async Task<bool> ForgotPasswordAsync(string email)
+    public async Task<object> ForgotPasswordAsync(string email)
     {
         var user = await _userManager.FindByEmailAsync(email);
         if (user is null)
@@ -25,7 +30,7 @@ public class SecurityService : ISecurityService
             return false;
         }
 
-        var resetUrl = QueryHelpers.AddQueryString("https://yourapp.com/reset-password", new Dictionary<string, string?>
+        var resetLink = QueryHelpers.AddQueryString(_baseUrl + "reset-password", new Dictionary<string, string?>
         {
             { "userId", user.Id },
             { "token", await _userManager.GeneratePasswordResetTokenAsync(user) }
@@ -34,8 +39,10 @@ public class SecurityService : ISecurityService
         var result = await _emailServiceClient.SendEmailAsync(new SendEmailRequest
         {
             To = email,
-            template = "password_reset",
-            data = new { ResetUrl = resetUrl }
+            Template = "password_reset",
+            Subject = "Reset Your Password",
+            Body = "Please click the link below to reset your password.",
+            Data = new EmailData { Username = user.UserName!, ResetLink = resetLink }
         });
         return result;
     }
@@ -114,20 +121,26 @@ public class SecurityService : ISecurityService
     /// <param name="userId"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public async Task<bool> ResendVerificationEmailAsync(string userId)
+    public async Task<IdentityResult> SendVerificationEmailAsync(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null)
         {
-            return false;
+            return IdentityResult.Failed(new IdentityError
+            {
+                Code = "UserNotFound",
+                Description = "User not found"
+            });
         }
 
         if (user.EmailConfirmed)
         {
-            return true; // Email is already confirmed
+            return IdentityResult.Success; // Email is already confirmed
         }
 
-        var verificationUrl = QueryHelpers.AddQueryString("https://yourapp.com/verify-email", new Dictionary<string, string?>
+        var verificationLink = QueryHelpers.AddQueryString(
+            new Uri(new Uri(_baseUrl), "verify-email").ToString(),
+            new Dictionary<string, string?>
         {
             { "userId", user.Id },
             { "token", await _userManager.GenerateEmailConfirmationTokenAsync(user) }
@@ -136,9 +149,19 @@ public class SecurityService : ISecurityService
         var result = await _emailServiceClient.SendEmailAsync(new SendEmailRequest
         {
             To = user.Email!,
-            template = "email_verification",
-            data = new { VerificationUrl = verificationUrl }
+            Template = "account_verification",
+            Subject = "Verify Your Email",
+            Body = "Please click the link below to verify your email address.",
+            Data = new EmailData { Username = user.UserName!, VerificationLink = verificationLink }
         });
-        return result;
+        if (!result.IsSuccessStatusCode)
+        {
+            return IdentityResult.Failed(new IdentityError
+            {
+                Code = "EmailSendFailed",
+                Description = "Failed to send verification email"
+            });
+        }
+        return IdentityResult.Success;
     }
 }

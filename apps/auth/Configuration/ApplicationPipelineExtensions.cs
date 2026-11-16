@@ -43,6 +43,7 @@ public static class ApplicationPipelineExtensions
         app.UseAuthentication();
         app.UseMiddleware<SessionValidationMiddleware>();
         app.UseAuthorization();
+        app.UseAntiforgery();
 
         return app;
     }
