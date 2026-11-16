@@ -40,7 +40,8 @@ func (s *GinServer) setupRoutes() {
 	s.ginEngine.GET("/readiness", s.Readiness)
 	s.ginEngine.GET("/liveness", s.Liveness)
 
-	eg := s.ginEngine.Group("/email")
+	api := s.ginEngine.Group("/api")
+	eg := api.Group("/email")
 	eg.POST("/send", s.SendEmail)
 }
 
