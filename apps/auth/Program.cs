@@ -26,10 +26,7 @@ if (isMigration)
 
 app.UseApplicationPipeline();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapLoginEndpoints();
-}
+app.MapLoginEndpoints();
 app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
