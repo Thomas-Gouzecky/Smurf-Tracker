@@ -1,0 +1,191 @@
+@page "/dev/home"
+@rendermode InteractiveServer
+@inject IJSRuntime Js
+
+<PageTitle>Auth development home</PageTitle>
+
+<h1>Auth development home</h1>
+<p>Use this page to exercise the auth service endpoints from the current browser session.</p>
+
+<section>
+    <h2>Public endpoints</h2>
+    <div class="dev-form">
+        <button @onclick="GetHealthAsync">GET /health</button>
+    </div>
+
+    <h3>Login</h3>
+    <div class="dev-form">
+        <input @bind="_userName" placeholder="Username" autocomplete="username" />
+        <input @bind="_password" type="password" placeholder="Password" autocomplete="current-password" />
+        <label><input @bind="_rememberMe" type="checkbox" /> Remember me</label>
+        <button @onclick="LoginAsync">POST /api/auth/login</button>
+    </div>
+
+    <h3>Register</h3>
+    <div class="dev-form">
+        <input @bind="_userName" placeholder="Username" autocomplete="username" />
+        <input @bind="_email" type="email" placeholder="Email" autocomplete="email" />
+        <input @bind="_password" type="password" placeholder="Password" autocomplete="new-password" />
+        <input @bind="_phoneNumber" placeholder="Phone number (optional)" autocomplete="tel" />
+        <button @onclick="RegisterAsync">POST /api/auth/register</button>
+    </div>
+
+    <h3>Forgot password</h3>
+    <div class="dev-form">
+        <input @bind="_email" type="email" placeholder="Email" />
+        <button @onclick="ForgotPasswordAsync">POST /api/auth/forgot-password</button>
+    </div>
+
+    <h3>Reset password</h3>
+    <div class="dev-form">
+        <input @bind="_resetCode" placeholder="Reset code" />
+        <input @bind="_newPassword" type="password" placeholder="New password" />
+        <button @onclick="ResetPasswordAsync">POST /api/auth/reset-password</button>
+    </div>
+
+    <h3>Verify email</h3>
+    <div class="dev-form">
+        <input @bind="_userId" placeholder="User ID" />
+        <input @bind="_verificationToken" placeholder="Verification token" />
+        <button @onclick="VerifyEmailAsync">POST /api/auth/verify-email</button>
+    </div>
+</section>
+
+<section>
+    <h2>Authenticated endpoints</h2>
+    <div class="dev-form">
+        <button @onclick="GetCurrentUserAsync">GET /api/auth/me</button>
+        <button @onclick="GetSessionsAsync">GET /api/auth/sessions</button>
+        <button @onclick="SendVerificationEmailAsync">POST /api/auth/send-verification-email</button>
+        <button @onclick="LogoutAsync">POST /api/auth/logout</button>
+        <button @onclick="LogoutAllAsync">POST /api/auth/logout-all</button>
+    </div>
+
+    <h3>Change password</h3>
+    <div class="dev-form">
+        <input @bind="_currentPassword" type="password" placeholder="Current password" />
+        <input @bind="_newPassword" type="password" placeholder="New password" />
+        <button @onclick="ChangePasswordAsync">POST /api/auth/change-password</button>
+    </div>
+
+    <h3>Delete session</h3>
+    <div class="dev-form">
+        <input @bind="_sessionId" placeholder="Session ID" />
+        <button @onclick="DeleteSessionAsync">DELETE /api/auth/sessions/{sessionId}</button>
+    </div>
+</section>
+
+<section>
+    <h2>Last response</h2>
+    @if (_response is null)
+    {
+        <p>No request sent yet.</p>
+    }
+    else
+    {
+        <p><strong>@_response.Status</strong></p>
+        <pre>@_response.Body</pre>
+    }
+</section>
+
+@code {
+    private string _email = string.Empty;
+    private string _userName = string.Empty;
+    private string _password = string.Empty;
+    private string _phoneNumber = string.Empty;
+    private string _resetCode = string.Empty;
+    private string _newPassword = string.Empty;
+    private string _userId = string.Empty;
+    private string _verificationToken = string.Empty;
+    private string _currentPassword = string.Empty;
+    private string _sessionId = string.Empty;
+    private bool _rememberMe;
+    private ApiResponse? _response;
+
+    private Task GetHealthAsync() =>
+        CallAsync("GET", "/health");
+
+    private Task LoginAsync() =>
+        CallAsync("POST", "/api/auth/login", new
+        {
+            userName = _userName,
+            password = _password,
+            returnUrl = "/dev/home",
+            rememberMe = _rememberMe
+        });
+
+    private Task RegisterAsync() =>
+        CallFormAsync("/api/auth/register", new Dictionary<string, string>
+        {
+            ["userName"] = _userName,
+            ["email"] = _email,
+            ["password"] = _password,
+            ["phoneNumber"] = _phoneNumber,
+            ["returnUrl"] = "/dev/home"
+        });
+
+    private Task ForgotPasswordAsync() =>
+        CallAsync("POST", "/api/auth/forgot-password", new { email = _email });
+
+    private Task ResetPasswordAsync() =>
+        CallAsync("POST", "/api/auth/reset-password", new
+        {
+            email = _email,
+            resetCode = _resetCode,
+            newPassword = _newPassword
+        });
+
+    private Task VerifyEmailAsync() =>
+        CallAsync(
+            "POST",
+            $"/api/auth/verify-email?userId={Uri.EscapeDataString(_userId)}&token={Uri.EscapeDataString(_verificationToken)}");
+
+    private Task GetCurrentUserAsync() =>
+        CallAsync("GET", "/api/auth/me");
+
+    private Task GetSessionsAsync() =>
+        CallAsync("GET", "/api/auth/sessions");
+
+    private Task SendVerificationEmailAsync() =>
+        CallAsync("POST", "/api/auth/send-verification-email");
+
+    private Task LogoutAsync() =>
+        CallAsync("POST", "/api/auth/logout");
+
+    private Task LogoutAllAsync() =>
+        CallAsync("POST", "/api/auth/logout-all");
+
+    private Task ChangePasswordAsync() =>
+        CallAsync("POST", "/api/auth/change-password", new
+        {
+            currentPassword = _currentPassword,
+            newPassword = _newPassword
+        });
+
+    private Task DeleteSessionAsync() =>
+        CallAsync("DELETE", $"/api/auth/sessions/{Uri.EscapeDataString(_sessionId)}");
+
+    private async Task CallAsync(string method, string url, object? body = null)
+    {
+        _response = await Js.InvokeAsync<ApiResponse>(
+            "authDevApi.call",
+            method,
+            url,
+            body);
+    }
+
+    private async Task CallFormAsync(string url, Dictionary<string, string> values)
+    {
+        _response = await Js.InvokeAsync<ApiResponse>(
+            "authDevApi.callForm",
+            url,
+            values);
+    }
+
+    private sealed class ApiResponse
+    {
+        public int StatusCode { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string Body { get; set; } = string.Empty;
+    }
+}
