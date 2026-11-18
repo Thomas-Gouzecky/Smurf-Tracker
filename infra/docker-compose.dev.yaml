@@ -1,5 +1,6 @@
 include:
   - postgres/docker-compose.postgres.yaml
+  - kafka/docker-compose.kafka.yaml
   - auth/docker-compose.auth.yaml
   - api-gateway/docker-compose.gateway.yaml
   - email-service/docker-compose.email.yaml

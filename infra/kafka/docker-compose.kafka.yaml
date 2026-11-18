@@ -33,7 +33,37 @@ services:
 
     volumes:
       - kafka-data:/var/lib/kafka/data
+    networks:
+      - smurftracker_network
+
+  debezium:
+    image: quay.io/debezium/connect:3.5
+    container_name: debezium
+    hostname: debezium
+    restart: unless-stopped
+    depends_on:
+      - kafka
+
+    ports:
+      - '8083:8083'
+
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: 1
+
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-status
+
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+    networks:
+      - smurftracker_network
 
 volumes:
   kafka-data:
     name: kafka-data
+networks:
+  smurftracker_network:
+    driver: bridge

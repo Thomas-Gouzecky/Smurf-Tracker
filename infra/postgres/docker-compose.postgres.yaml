@@ -11,6 +11,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
     ports:
       - '5433:5432'
     volumes:
