@@ -1,5 +1,5 @@
 {
-  "name": "auth-outbox-connector",
+  "name": "auth-outbox-connector-v2",
   "config": {
     "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
     "tasks.max": "1",
