@@ -1,4 +1,14 @@
-\connect smurftracker
+SELECT 'CREATE DATABASE outbox'
+WHERE NOT EXISTS (
+    SELECT FROM pg_database WHERE datname = 'outbox'
+)\gexec
+
+SELECT 'CREATE DATABASE auth'
+WHERE NOT EXISTS (
+    SELECT FROM pg_database WHERE datname = 'auth'
+)\gexec
+
+\connect outbox
 
 CREATE TABLE IF NOT EXISTS public.outbox (
     id SERIAL PRIMARY KEY,
@@ -25,8 +35,8 @@ BEGIN
 END
 $$;
 
-GRANT CONNECT ON DATABASE smurftracker TO debezium;
-GRANT CREATE ON DATABASE smurftracker TO debezium;
+GRANT CONNECT ON DATABASE outbox TO debezium;
+GRANT CREATE ON DATABASE outbox TO debezium;
 GRANT USAGE ON SCHEMA public TO debezium;
 
 DO $$

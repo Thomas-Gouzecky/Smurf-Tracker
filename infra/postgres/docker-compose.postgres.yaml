@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: smurftracker
+      POSTGRES_DB: auth
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres']
       interval: 10s
@@ -30,7 +30,7 @@ services:
     command: ['--migrate']
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=smurftracker;Username=postgres;Password=postgres
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=auth;Username=postgres;Password=postgres
     depends_on:
       postgres:
         condition: service_healthy
