@@ -5,6 +5,7 @@ public class ApplicationDbContext
     : IdentityDbContext<ApplicationUser>
 {
     public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     public ApplicationDbContext(
         DbContextOptions<ApplicationDbContext> options)
@@ -29,6 +30,28 @@ public class ApplicationDbContext
                 .WithMany()
                 .HasForeignKey(session => session.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<OutboxMessage>(entity =>
+        {
+            entity.ToTable("outbox");
+            entity.HasKey(message => message.Id);
+            entity.Property(message => message.Id)
+                .HasColumnName("id")
+                .HasDefaultValueSql("gen_random_uuid()");
+            entity.Property(message => message.AggregateId)
+                .HasColumnName("aggregate_id");
+            entity.Property(message => message.AggregateType)
+                .HasColumnName("aggregate_type")
+                .HasMaxLength(255);
+            entity.Property(message => message.EventType)
+                .HasColumnName("event_type")
+                .HasMaxLength(255);
+            entity.Property(message => message.Payload)
+                .HasColumnName("payload");
+            entity.Property(message => message.CreatedAt)
+                .HasColumnName("created_at")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
     }
 }
