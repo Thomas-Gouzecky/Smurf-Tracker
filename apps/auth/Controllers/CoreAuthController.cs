@@ -40,7 +40,7 @@ public class CoreAuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromForm] UserRegisterRequest request, [FromForm] string returnUrl, CancellationToken cancellationToken)
+    public async Task<IActionResult> Register([FromForm] UserRegisterRequest request, [FromForm] string returnUrl, CancellationToken cancellationToken = default)
     {
         if (!Url.IsLocalUrl(returnUrl))
         {

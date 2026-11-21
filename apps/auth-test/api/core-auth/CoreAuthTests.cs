@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -111,7 +113,13 @@ public class CoreAuthTests
                 false,
                 null))
             .Returns(Task.CompletedTask);
-        var controller = CreateController(userManager, signInManager);
+        var outboxService = new Mock<IOutboxService>();
+        outboxService
+            .Setup(service => service.AddMessageAsync(
+                It.IsAny<OutboxMessage>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        var controller = CreateController(userManager, signInManager, outboxService.Object);
 
         var result = await controller.Register(
             new UserRegisterRequest
@@ -130,6 +138,13 @@ public class CoreAuthTests
                 It.IsAny<ApplicationUser>(),
                 false,
                 null),
+            Times.Once);
+        outboxService.Verify(
+            service => service.AddMessageAsync(
+                It.Is<OutboxMessage>(message =>
+                    message.AggregateType == nameof(ApplicationUser) &&
+                    message.EventType == "UserRegistered"),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -245,7 +260,8 @@ public class CoreAuthTests
 
     private static CoreAuthController CreateController(
         Mock<UserManager<ApplicationUser>> userManager,
-        Mock<SignInManager<ApplicationUser>> signInManager)
+        Mock<SignInManager<ApplicationUser>> signInManager,
+        IOutboxService? outboxService = null)
     {
         var httpContext = new DefaultHttpContext
         {
@@ -256,7 +272,18 @@ public class CoreAuthTests
             new Microsoft.AspNetCore.Routing.RouteData(),
             new Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor());
 
-        return new CoreAuthController(userManager.Object, signInManager.Object)
+        var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        var dbContextOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        var dbContext = new SqliteApplicationDbContext(dbContextOptions);
+
+        return new CoreAuthController(
+            userManager.Object,
+            signInManager.Object,
+            dbContext,
+            outboxService ?? Mock.Of<IOutboxService>())
         {
             ControllerContext = new ControllerContext(actionContext),
             Url = new Microsoft.AspNetCore.Mvc.Routing.UrlHelper(actionContext)
@@ -288,4 +315,15 @@ public class CoreAuthTests
 
     private static T? GetProperty<T>(object value, string propertyName) =>
         (T?)value.GetType().GetProperty(propertyName)?.GetValue(value);
+
+    private sealed class SqliteApplicationDbContext(
+        DbContextOptions<ApplicationDbContext> options)
+        : ApplicationDbContext(options)
+    {
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<OutboxMessage>().Ignore(message => message.Payload);
+        }
+    }
 }
