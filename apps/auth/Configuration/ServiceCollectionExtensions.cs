@@ -7,6 +7,7 @@ using OpenIddict.Validation.AspNetCore;
 using OpenIddict.Server;
 using Microsoft.Extensions.Options;
 using static OpenIddict.Abstractions.OpenIddictConstants;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 public static class ServiceCollectionExtensions
 {
@@ -189,6 +190,18 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISessionService, SessionService>();
 
         services.Configure<ApplicationOptions>(configuration.GetSection(ApplicationOptions.SectionName));
+
+
+        services.AddHealthChecks()
+            .AddCheck<DatabaseHealthCheck>(
+                "database",
+                tags: ["ready"]
+            )
+            .AddCheck(
+                "self",
+                () => HealthCheckResult.Healthy(),
+                tags: ["live"]
+            );
 
 
         return services;
