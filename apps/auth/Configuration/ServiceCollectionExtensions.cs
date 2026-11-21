@@ -187,6 +187,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ISecurityService, SecurityService>();
         services.AddScoped<IEmailServiceClient, EmailServiceClient>();
+        services.AddScoped<IOutboxService, OutboxService>();
         services.AddScoped<ISessionService, SessionService>();
 
         services.Configure<ApplicationOptions>(configuration.GetSection(ApplicationOptions.SectionName));
