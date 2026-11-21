@@ -430,35 +430,37 @@ namespace auth.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
                         .HasColumnName("id")
-                        .HasDefaultValueSql("gen_random_uuid()")
-                        .HasColumnType("uuid");
+                        .HasDefaultValueSql("gen_random_uuid()");
 
-                    b.Property<Guid>("AggregateId")
-                        .HasColumnName("aggregate_id")
-                        .HasColumnType("uuid");
+                    b.Property<string>("AggregateId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("aggregate_id");
 
                     b.Property<string>("AggregateType")
                         .IsRequired()
-                        .HasColumnName("aggregate_type")
                         .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("aggregate_type");
 
                     b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                        .HasColumnType("timestamp with time zone");
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("EventType")
                         .IsRequired()
-                        .HasColumnName("event_type")
                         .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("event_type");
 
                     b.Property<JsonDocument>("Payload")
                         .IsRequired()
-                        .HasColumnName("payload")
-                        .HasColumnType("jsonb");
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
 
                     b.HasKey("Id");
 

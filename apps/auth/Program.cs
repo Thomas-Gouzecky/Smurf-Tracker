@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using auth;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 var isMigration = args.Contains("--migrate", StringComparer.OrdinalIgnoreCase);
@@ -25,6 +26,17 @@ if (isMigration)
 }
 
 app.UseApplicationPipeline();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("live")
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
+
 
 app.MapLoginEndpoints();
 app.MapControllers();
